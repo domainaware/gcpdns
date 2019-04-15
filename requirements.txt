@@ -1,0 +1,12 @@
+google-api-python-client
+google-cloud
+google-cloud-dns
+publicsuffix2
+docopt
+sphinx
+sphinx_rtd_theme
+collective.checkdocs
+flake8
+wheel
+nose
+rstcheck>=3.3.1
