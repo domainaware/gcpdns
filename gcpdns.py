@@ -18,7 +18,7 @@ from google.cloud import dns
 import publicsuffix2
 import docopt
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 ZONE_CACHE = dict()
 
@@ -414,13 +414,13 @@ Options:
                 print(records["json"])
         for file_path in args["<output_file>"]:
             if file_path.lower().endswith("json"):
-                with open(args["<output_file>"],
+                with open(file_path,
                           "w", encoding="utf-8",
                           newline="\n",
                           errors="ignore") as output_file:
                     output_file.write(records[".json"])
             elif file_path.lower().endswith(".csv"):
-                with open(args["<output_file>"],
+                with open(file_path,
                           "w", encoding="utf-8",
                           newline="\n",
                           errors="ignore") as output_file:
