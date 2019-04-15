@@ -11,8 +11,7 @@ A Python module and CLI for managing resource records on Google Cloud DNS
     Usage:
       gcpdns <credential_file> zones [-f csv|json] [-o <output_file>]...
       gcpdns <credential_file> records <zone> [-f csv|json] [-o <output_file>]...
-      gcpdns <credential_file> apply [--verbose] [--ignore-errors]
-      [--error-on-existing] <csv_file>
+      gcpdns <credential_file> apply [--verbose] [--ignore-errors] <csv_file>
       gcpdns -h | --help
       gcpdns --version
 
@@ -22,9 +21,7 @@ A Python module and CLI for managing resource records on Google Cloud DNS
       -f                   Set the screen output format [default: json].
       -o                   Output to these files and suppress screen output.
       --verbose            Enable verbose logging output.
-      --ignore-errors      Do not stop processing when an error occurs
-      --error-on-existing  When an existing record set is found, raise an
-      error instead of replacing it.
+      --ignore-errors      Do not stop processing when an error occurs.
 
 Features
 --------
@@ -45,7 +42,13 @@ Ensure that the Service Account has the proper permissions to edit DNS
 Records CSV fields
 ------------------
 
-- ``action`` - ``add`` or ``remove``
+- ``action``
+
+  - ``add`` - Adds a resource record set
+  - ``replace`` - The same as ``add``, but will replace an existing resource
+    record set with the same ``name`` and ``record_type`` (if it exists)
+  - ``delete`` - Deletes a resource record set
+
 - ``name`` - The record set name (i.e. the Fully-Qualified Domain Name)
 - ``record_type`` - The DNS record type
 - ``ttl`` - DNS time to live (in seconds)

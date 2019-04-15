@@ -18,7 +18,7 @@ from google.cloud import dns
 import publicsuffix2
 import docopt
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 ZONE_CACHE = dict()
 
@@ -116,7 +116,7 @@ class DNSClient(dns.Client):
         return dict(csv=_csv, json=_json)
 
     def add_or_replace_record_set(self, name, record_type, data, ttl=300,
-                                  error_on_existing=False):
+                                  replace=False):
         """
         Adds or replaces a DNS resource record set
 
@@ -126,8 +126,7 @@ class DNSClient(dns.Client):
             data: A list of resource record data strings,
             or a string of one or more resource records separated by |
             ttl (int): Time to live (in seconds)
-            error_on_existing (bool): Raise ''gcpdns.ExistingRecordSetFound''
-            exception, instead of replacing the existing record set
+            replace (bool): Replace existing record set if needed
 
         Raises:
             gcpdns.ExistingRecordSetFound
@@ -150,7 +149,7 @@ class DNSClient(dns.Client):
         for r_set in zone.list_resource_record_sets():
             if r_set.name == name and r_set.record_type == record_type:
                 old_record_set = r_set
-                if error_on_existing:
+                if not replace:
                     raise ExistingRecordSetFound(
                         "Existing record set found: {0} {1} {2} {3}".format(
                             r_set.name,
@@ -239,8 +238,31 @@ class DNSClient(dns.Client):
                 "Record set not found: {0} {1}".format(name,
                                                        record_type))
 
-    def apply_record_sets_csv(self, csv_file, ignore_errors=False,
-                              error_on_existing=False):
+    def apply_record_sets_csv(self, csv_file, ignore_errors=False):
+        """
+        Apply a CSV of record set changes
+
+        The CSV fields are:
+        - ``action``
+
+            - ``add`` - Adds a resource record set
+            - ``replace`` - The same as ``add``, but will replace an existing
+              resource record set with the same ``name`` and ``record_type``
+              (if it exists)
+            - ``delete`` - Deletes a resource record set
+
+        - ``name`` - The record set name (i.e. the Fully-Qualified Domain Name)
+        - ``record_type`` - The DNS record type
+        - ``ttl`` - DNS time to live (in seconds)
+        - ``data`` - DNS record data separated by ``|``
+
+        Args:
+            csv_file: A file or file-like object
+            ignore_errors (bool): Log errors instead of raising an exception
+
+        Raises:
+            gcpdns.CSVError
+        """
         logger.info("Applying record sets from CSV")
         reader = csv.DictReader(csv_file)
         for row in reader:
@@ -262,7 +284,7 @@ class DNSClient(dns.Client):
             data = None
             if "data" in row:
                 data = row["data"]
-            if action in ["delete", "destroy", "purge", "remove"]:
+            if action == "delete":
                 try:
                     self.delete_record_set(name, record_type)
                 except RecordSetNotFound as e:
@@ -273,13 +295,13 @@ class DNSClient(dns.Client):
                     else:
                         raise CSVError(error)
 
-            elif action in ["add", "create", "edit", "modify", "update"]:
+            elif action in ["add", "replace"]:
                 if data is not None:
+                    replace = action == "replace"
                     try:
                         self.add_or_replace_record_set(
                             name, record_type,
-                            data, ttl=ttl,
-                            error_on_existing=error_on_existing)
+                            data, ttl=ttl, replace=replace)
                     except ExistingRecordSetFound as e:
                         error = "Line {0}: {1}".format(reader.line_num,
                                                        e.__str__())
@@ -306,26 +328,23 @@ class DNSClient(dns.Client):
 
 def _main():
     usage = """
-    gcpdns: A CLI for managing resource records on Google Cloud DNS
+gcpdns: A CLI for managing resource records on Google Cloud DNS
 
-    Usage:
-      gcpdns <credential_file> zones [-f csv|json] [-o <output_file>]...
-      gcpdns <credential_file> records <zone> [-f csv|json] [-o <output_file>]...
-      gcpdns <credential_file> apply [--verbose] [--ignore-errors]
-      [--error-on-existing] <csv_file>
-      gcpdns -h | --help
-      gcpdns --version
+Usage:
+  gcpdns <credential_file> zones [-f csv|json] [-o <output_file>]...
+  gcpdns <credential_file> records <zone> [-f csv|json] [-o <output_file>]...
+  gcpdns <credential_file> apply [--verbose] [--ignore-errors] <csv_file>
+  gcpdns -h | --help
+  gcpdns --version
 
-    Options:
-      -h --help            Show this screen.
-      --version            Show version.
-      -f                   Set the screen output format [default: json].
-      -o                   Output to these files and suppress screen output.
-      --verbose            Enable verbose logging output.
-      --ignore-errors      Do not stop processing when an error occurs.
-      --error-on-existing  When an existing record set is found, raise an
-      error instead of replacing it.
-    """
+Options:
+  -h --help            Show this screen.
+  --version            Show version.
+  -f                   Set the screen output format [default: json].
+  -o                   Output to these files and suppress screen output.
+  --verbose            Enable verbose logging output.
+  --ignore-errors      Do not stop processing when an error occurs.
+  """
     args = docopt.docopt(usage, version=__version__)
     if args["--verbose"]:
         logging.basicConfig(level=logging.INFO,
@@ -347,13 +366,13 @@ def _main():
             try:
                 client.apply_record_sets_csv(
                     csv_file,
-                    ignore_errors=args["--ignore-errors"],
-                    error_on_existing=args["--error-on-existing"]
+                    ignore_errors=args["--ignore-errors"]
                 )
             except Exception as e:
                 logger.error(e.__str__())
                 exit(-1)
     elif args["zones"]:
+        zones = []
         try:
             zones = client.dump_zones()
         except Exception as e:
@@ -382,6 +401,7 @@ def _main():
                 exit(-1)
 
     elif args["records"]:
+        records = []
         try:
             records = client.dump_records(args["<zone>"])
         except Exception as e:

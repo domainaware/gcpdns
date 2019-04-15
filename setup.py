@@ -15,7 +15,7 @@ from setuptools import setup
 from codecs import open
 from os import path
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 desc = "A Python module and CLI for managing resource records on " \
        "Google Cloud DNS"
 
