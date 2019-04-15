@@ -385,13 +385,13 @@ Options:
                 print(zones["json"])
         for file_path in args["<output_file>"]:
             if file_path.lower().endswith("json"):
-                with open(args["<output_file>"],
+                with open(file_path,
                           "w", encoding="utf-8",
                           newline="\n",
                           errors="ignore") as output_file:
                     output_file.write(zones[".json"])
             elif file_path.lower().endswith(".csv"):
-                with open(args["<output_file>"],
+                with open(file_path,
                           "w", encoding="utf-8",
                           newline="\n",
                           errors="ignore") as output_file:
