@@ -29,6 +29,8 @@ Features
 - Dump all project zones or zone resource records in CSV or JSON format
 - Update DNS resource records for multiple zones in one project using one CSV
   file
+- Automatically splits ``TXT`` records longer than 255 characters when publishing
+- Automatically adds an ending ``.`` to records when needed
 
 Setup
 -----
@@ -44,8 +46,8 @@ Records CSV fields
 
 - ``action``
 
-  - ``add`` - Adds a resource record set
-  - ``replace`` - The same as ``add``, but will replace an existing resource
+  - ``create`` - Creates a resource record set
+  - ``replace`` - The same as ``create``, but will replace an existing resource
     record set with the same ``name`` and ``record_type`` (if it exists)
   - ``delete`` - Deletes a resource record set
 

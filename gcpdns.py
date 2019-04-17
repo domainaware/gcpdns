@@ -29,6 +29,10 @@ class ZoneNotFound(ValueError):
     """Raised when a requested zone is not found"""
 
 
+class ZoneConflict(ValueError):
+    """Raised when a conflicting zone already exists"""
+
+
 class RecordSetNotFound(ValueError):
     """Raised when a record set is not found"""
 
@@ -44,12 +48,57 @@ class CSVError(ValueError):
 class DNSClient(dns.Client):
     """An extended Google DNS client with helper functions"""
     def get_zone(self, name):
+        """
+        Get a Zone object by zone name or DNS name
+
+        Args:
+            name (str): zone name or dns_name
+
+        Raises:
+            gcpclient.ZoneNotFound
+        """
         dns_name = "{0}.".format(name.lower().rstrip("."))
         zones = self.list_zones()
         for zone in zones:
             if zone.name == name or zone.dns_name == dns_name:
                 return zone
         raise ZoneNotFound("The zone named {0} was not found".format(name))
+
+    def create_zone(self, dns_name, name=None, description=None):
+        """
+        Creates a DNS zone
+
+        Args:
+            dns_name (str): The zone's DNS name
+            name (str): the zone's GCP name
+            description (str): A description of the zone
+
+        Raises:
+            gcpclient.ZoneConflict
+        """
+        dns_name = dns_name.lower()
+        if name is None:
+            name = dns_name.replace(".", "-")
+        zones = self.list_zones()
+        for zone in zones:
+            if zone.name == name or zone.dns_name == dns_name:
+                raise ZoneConflict(
+                    "A conflicting zone already exists: {0} ({1})".format(
+                        zone.dns_name, zone.name
+                    ))
+        self.zone(name, dns_name=dns_name, description=description).create()
+
+    def delete_zone(self, zone_name):
+        """
+        Deletes a zone
+
+        Args:
+            zone_name: The zone's DNS name of GCP name
+
+        Returns:
+
+        """
+        self.get_zone(zone_name).delete()
 
     def dump_zones(self):
         """
@@ -115,8 +164,8 @@ class DNSClient(dns.Client):
 
         return dict(csv=_csv, json=_json)
 
-    def add_or_replace_record_set(self, name, record_type, data, ttl=300,
-                                  replace=False):
+    def create_or_replace_record_set(self, name, record_type, data, ttl=300,
+                                     replace=False):
         """
         Adds or replaces a DNS resource record set
 
@@ -238,6 +287,79 @@ class DNSClient(dns.Client):
                 "Record set not found: {0} {1}".format(name,
                                                        record_type))
 
+    def apply_zones_csv(self, csv_file, ignore_errors=False):
+        """
+        Apply a CSV of zones
+
+        The CSV fields are:
+        - ``action``
+
+            - ``create`` - Creates a zone
+            - ``delete`` - Deletes a zone
+
+        - ``dns_name`` - The zone's DNS name
+        - ``gcp_name`` - The zone's name in GCP (optional)
+        - ``description`` - DNS time to live (in seconds)
+
+        Args:
+            csv_file: A file or file-like object
+            ignore_errors (bool): Log errors instead of raising an exception
+
+        Raises:
+            gcpdns.CSVError
+        """
+        logger.info("Applying zones CSV")
+        reader = csv.DictReader(csv_file)
+        for row in reader:
+            try:
+                dns_name = row["dns_name"].lower()
+                action = row["action"].lower()
+            except KeyError as e:
+                error = "Line {0}: Missing {1)".format(reader.line_num,
+                                                       e.__str__())
+                if ignore_errors:
+                    logger.error(error)
+                    continue
+                else:
+                    raise CSVError(error)
+
+            gcp_name = None
+            if "gcp_name" in row:
+                gcp_name = row["gcp_name"]
+            description = None
+            if "description" in row:
+                description = row["description"]
+            if action == "delete":
+                try:
+                    self.delete_zone(dns_name)
+                except ZoneNotFound as e:
+                    error = "Line {0}: {1}".format(reader.line_num,
+                                                   e.__str__())
+                    if ignore_errors:
+                        logger.warning(error)
+                    else:
+                        raise CSVError(error)
+
+            elif action == "create":
+                try:
+                    self.create_zone(dns_name=dns_name, name=gcp_name,
+                                     description=description)
+                except ZoneConflict as e:
+                    error = "Line {0}: {1}".format(reader.line_num,
+                                                   e.__str__())
+                    if ignore_errors:
+                        logger.error(error)
+                    else:
+                        raise CSVError(error)
+
+            else:
+                error = "Line {0}: Invalid action".format(
+                    reader.line_num)
+                if ignore_errors:
+                    logger.error(error)
+                else:
+                    raise CSVError(error)
+
     def apply_record_sets_csv(self, csv_file, ignore_errors=False):
         """
         Apply a CSV of record set changes
@@ -245,10 +367,10 @@ class DNSClient(dns.Client):
         The CSV fields are:
         - ``action``
 
-            - ``add`` - Adds a resource record set
-            - ``replace`` - The same as ``add``, but will replace an existing
-              resource record set with the same ``name`` and ``record_type``
-              (if it exists)
+            - ``create`` - Creates a resource record set
+            - ``replace`` - The same as ``create``, but will replace an
+            existing resource record set with the same ``name`` and `
+            `record_type``(if it exists)
             - ``delete`` - Deletes a resource record set
 
         - ``name`` - The record set name (i.e. the Fully-Qualified Domain Name)
@@ -263,7 +385,7 @@ class DNSClient(dns.Client):
         Raises:
             gcpdns.CSVError
         """
-        logger.info("Applying record sets from CSV")
+        logger.info("Applying record sets CSV")
         reader = csv.DictReader(csv_file)
         for row in reader:
             try:
@@ -295,11 +417,11 @@ class DNSClient(dns.Client):
                     else:
                         raise CSVError(error)
 
-            elif action in ["add", "replace"]:
+            elif action in ["create", "replace"]:
                 if data is not None:
                     replace = action == "replace"
                     try:
-                        self.add_or_replace_record_set(
+                        self.create_or_replace_record_set(
                             name, record_type,
                             data, ttl=ttl, replace=replace)
                     except ExistingRecordSetFound as e:
@@ -328,22 +450,30 @@ class DNSClient(dns.Client):
 
 def _main():
     usage = """
-gcpdns: A CLI for managing resource records on Google Cloud DNS
-
-Usage:
-  gcpdns <credential_file> zones [-f csv|json] [-o <output_file>]...
-  gcpdns <credential_file> records <zone> [-f csv|json] [-o <output_file>]...
-  gcpdns <credential_file> apply [--verbose] [--ignore-errors] <csv_file>
-  gcpdns -h | --help
-  gcpdns --version
-
-Options:
-  -h --help            Show this screen.
-  --version            Show version.
-  -f                   Set the screen output format [default: json].
-  -o                   Output to these files and suppress screen output.
-  --verbose            Enable verbose logging output.
-  --ignore-errors      Do not stop processing when an error occurs.
+    gcpdns: A CLI for managing resource records on Google Cloud DNS
+    
+    Usage:
+      gcpdns <credential_file> zone dump [-f csv|json] [-o <output_file>]...
+      gcpdns <credential_file> zone create <dns_name> [<gcp_name>]
+      gcpdns <credential_file> zone delete [-y | --yes] <zone_name>
+      gcpdns <credential_file> zone apply [--verbose] [--ignore-errors] <csv_file>
+      gcpdns <credential_file> record dump <zone> [-f csv|json] [-o <output_file>]...
+      gcpdns <credential_file> record create <name> <record_type> [--ttl=<seconds>] <data>
+      gcpdns <credential_file> record replace <name> <record_type> [--ttl=<seconds>] <data>
+      gcpdns <credential_file> record delete <name> <record_type>
+      gcpdns <credential_file> record apply [--verbose] [--ignore-errors] <csv_file>
+      gcpdns -h | --help
+      gcpdns --version
+    
+    Options:
+      -h --help            Show this screen.
+      --version            Show version.
+      -y --yes             Skip action confirmation.
+      -f                   Set the screen output format [default: json].
+      -o                   Output to these files and suppress screen output.
+      --ttl=<seconds>      DNS time to live in seconds [default: 300]
+      --verbose            Enable verbose logging output.
+      --ignore-errors      Do not stop processing when an error occurs.
   """
     args = docopt.docopt(usage, version=__version__)
     if args["--verbose"]:
@@ -360,7 +490,7 @@ Options:
     client = DNSClient(credentials=credentials,
                        project=credentials.project_id)
 
-    if args["apply"]:
+    if args["record"] and args["apply"]:
         with open(args["<csv_file>"], encoding="utf-8",
                   errors="ignore") as csv_file:
             try:
@@ -371,7 +501,7 @@ Options:
             except Exception as e:
                 logger.error(e.__str__())
                 exit(-1)
-    elif args["zones"]:
+    elif args["zone"] and args["dump"]:
         zones = []
         try:
             zones = client.dump_zones()
@@ -400,7 +530,7 @@ Options:
                 logger.error("Output filenames must end in .csv or .json")
                 exit(-1)
 
-    elif args["records"]:
+    elif args["record"] and args["dump"]:
         records = []
         try:
             records = client.dump_records(args["<zone>"])
@@ -428,6 +558,8 @@ Options:
             else:
                 logger.error("Output filenames must end in .csv or .json")
                 exit(-1)
+    elif args["zone"] and args["add"]:
+        client.create_zone()
 
 
 if __name__ == "__main__":
