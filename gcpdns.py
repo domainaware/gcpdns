@@ -515,7 +515,7 @@ def _delete_zone(ctx, name):
 @click.option("--format", "-f", "format_", default="json", show_default=True,
               type=click.Choice(["json", "csv"]),
               help="Set the screen output format")
-@click.option("--output", "--o",
+@click.option("--output", "-o",
               type=click.Path(dir_okay=False, writable=True),
               multiple=True,
               help="One or more output file paths that end in .csv or .json "
@@ -569,7 +569,7 @@ def _record():
 @click.option("--format", "-f", "format_", default="json", show_default=True,
               type=click.Choice(["json", "csv"]),
               help="Set the screen output format")
-@click.option("--output", "--o",
+@click.option("--output", "-o",
               type=click.Path(dir_okay=False, writable=True),
               multiple=True,
               help="One or more output file paths that end in .csv or .json "
