@@ -45,8 +45,8 @@ Zones CSV fields
 
 - ``action``
 
-    - ``create`` - Creates a zone
-    - ``delete`` - Deletes a zone
+  - ``create`` - Creates a zone
+  - ``delete`` - Deletes a zone
 
 - ``dns_name``    - The zone's DNS name
 - ``gcp_name``    - The zone's name in GCP (optional)
