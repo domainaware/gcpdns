@@ -18,7 +18,7 @@ from google.cloud import dns
 import publicsuffix2
 import click
 
-__version__ = "1.2.4"
+__version__ = "1.2.5"
 
 ZONE_CACHE = dict()
 
@@ -205,7 +205,7 @@ class DNSClient(dns.Client):
                             r_set.name,
                             r_set.record_type,
                             r_set.ttl,
-                            r_set.rrdata
+                            r_set.rrdatas
                         ))
                 change.delete_record_set(r_set)
         if type(data) == str:
