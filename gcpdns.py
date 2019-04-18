@@ -228,7 +228,7 @@ class DNSClient(dns.Client):
             for i in range(len(data)):
                 data[i] = "{0}.".format(data[i].rstrip("."))
         if old_record_set is None:
-            logging.debug(
+            logging.info(
                 "Adding record set: {0} {1} {2} {3}".format(
                     name,
                     record_type,
@@ -236,7 +236,7 @@ class DNSClient(dns.Client):
                     data
                 ))
         else:
-            logging.debug(
+            logging.info(
                 "Replacing record set: {0} {1} {2} {3} "
                 "with: {4} {5} {6} {7}".format(
                     old_record_set.name,
