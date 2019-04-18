@@ -40,8 +40,8 @@ file for each project that you want to work with.
 Ensure that the Service Account has the proper permissions to edit DNS
 (e.g. the DNS Administrator role) in the project.
 
-Zones CSV fields
-----------------
+Zone CSV fields
+---------------
 
 - ``action``
 
@@ -54,8 +54,8 @@ Zones CSV fields
 
 
 
-Records CSV fields
-------------------
+Record CSV fields
+-----------------
 
 - ``action``
 
