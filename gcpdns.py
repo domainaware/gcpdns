@@ -621,7 +621,7 @@ def _apply_record_sets_csv(ctx, csv_file_path, ignore_errors):
 @click.argument("name")
 @click.argument("record_type")
 @click.option("--ttl", "-t", type=int, default=3600, show_default=True,
-              metavar="seconds", help="DNS Time-To-Live in seconds")
+              metavar="seconds", help="DNS Time To Live (in seconds)")
 @click.argument("data")
 @click.pass_context
 def _create_or_replace_record_set(ctx, replace, name, record_type, ttl, data):
