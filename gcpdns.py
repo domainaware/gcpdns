@@ -317,7 +317,7 @@ class DNSClient(dns.Client):
                 action = row["action"].lower()
             except KeyError as e:
                 error = "Line {0}: Missing field: {1)".format(reader.line_num,
-                                                       e.__str__())
+                                                              e.__str__())
                 if ignore_errors:
                     logger.error(error)
                     continue
