@@ -18,7 +18,7 @@ from google.cloud import dns
 import publicsuffix2
 import click
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 
 ZONE_CACHE = dict()
 
@@ -638,6 +638,9 @@ def _create_or_replace_record_set(ctx, replace, name, record_type, ttl, data):
 @_record.command("delete")
 @click.argument("name")
 @click.argument("record_type")
+@click.confirmation_option(
+    "Are you sure you want to delete thins resource record set?")
+@click.pass_context
 def _delete_record_set(ctx, name, record_type):
     """Delete a resource record set"""
     try:
