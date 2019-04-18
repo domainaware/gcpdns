@@ -392,9 +392,9 @@ class DNSClient(dns.Client):
             try:
                 name = row["name"].lower()
                 action = row["action"].lower()
-                record_type = row["type"].upper()
+                record_type = row["record_type"].upper()
             except KeyError as e:
-                error = "Line {0}: Missing {1)".format(reader.line_num,
+                error = "Line {0}: Missing {1}".format(reader.line_num,
                                                        e.__str__())
                 if ignore_errors:
                     logger.error(error)
