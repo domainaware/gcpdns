@@ -3,6 +3,7 @@ google-cloud
 google-cloud-dns
 publicsuffix2
 docopt
+click
 sphinx
 sphinx_rtd_theme
 collective.checkdocs

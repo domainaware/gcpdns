@@ -2,31 +2,27 @@
 gcpdns
 ======
 
-A Python module and CLI for managing resource records on Google Cloud DNS
+A Python module and CLI for managing zones and resource record sets on Google Cloud DNS
 
 ::
 
-    gcpdns: A CLI for managing resource records on Google Cloud DNS
+    Usage: gcpdns [OPTIONS] CREDENTIAL_FILE COMMAND [ARGS]...
 
-    Usage:
-      gcpdns <credential_file> zones [-f csv|json] [-o <output_file>]...
-      gcpdns <credential_file> records <zone> [-f csv|json] [-o <output_file>]...
-      gcpdns <credential_file> apply [--verbose] [--ignore-errors] <csv_file>
-      gcpdns -h | --help
-      gcpdns --version
+    gcpdns: A CLI for managing resource records on Google Cloud DNS.
 
     Options:
-      -h --help            Show this screen.
-      --version            Show version.
-      -f                   Set the screen output format [default: json].
-      -o                   Output to these files and suppress screen output.
-      --verbose            Enable verbose logging output.
-      --ignore-errors      Do not stop processing when an error occurs.
+      --version  Show the version and exit.
+      --verbose  Enable verbose logging.
+      --help     Show this message and exit.
+
+    Commands:
+      record  Manage DNS resource record sets.
+      zone    Manage DNS zones.
 
 Features
 --------
 
-- Dump all project zones or zone resource records in CSV or JSON format
+- Dump all project zones names in CSV or JSON format
 - Update DNS resource records for multiple zones in one project using one CSV
   file
 - Automatically splits ``TXT`` records longer than 255 characters when publishing
@@ -40,6 +36,20 @@ file for each project that you want to work with.
 
 Ensure that the Service Account has the proper permissions to edit DNS
 (e.g. the DNS Administrator role) in the project.
+
+Zones CSV fields
+----------------
+
+- ``action``
+
+    - ``create`` - Creates a zone
+    - ``delete`` - Deletes a zone
+
+- ``dns_name``    - The zone's DNS name
+- ``gcp_name``    - The zone's name in GCP (optional)
+- ``description`` - The zone's description (optional)
+
+
 
 Records CSV fields
 ------------------

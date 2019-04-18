@@ -15,9 +15,9 @@ from setuptools import setup
 from codecs import open
 from os import path
 
-__version__ = "1.1.2"
-desc = "A Python module and CLI for managing resource records on " \
-       "Google Cloud DNS"
+__version__ = "1.2.0"
+desc = "A Python module and CLI for managing zones and resource record sets " \
+       "on Google Cloud DNS"
 
 here = path.abspath(path.dirname(__file__))
 
@@ -95,7 +95,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=['google-api-python-client', 'google-cloud',
-                      'google-cloud-dns', 'publicsuffix2', 'docopt'],
+                      'google-cloud-dns', 'publicsuffix2', 'click'],
 
     entry_points={
         'console_scripts': ['gcpdns=gcpdns:_main'],

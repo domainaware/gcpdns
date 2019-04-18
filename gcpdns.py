@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""A Python module and CLI for managing resource records on
+"""A Python module and CLI for managing zones and resource record sets on
 Google Cloud DNS"""
 
 from __future__ import absolute_import, print_function, unicode_literals
@@ -16,9 +16,9 @@ import textwrap
 from google.oauth2 import service_account
 from google.cloud import dns
 import publicsuffix2
-import docopt
+import click
 
-__version__ = "1.1.2"
+__version__ = "1.2.0"
 
 ZONE_CACHE = dict()
 
@@ -76,9 +76,10 @@ class DNSClient(dns.Client):
         Raises:
             gcpclient.ZoneConflict
         """
-        dns_name = dns_name.lower()
+        dns_name = dns_name.lower().rstrip(".")
         if name is None:
             name = dns_name.replace(".", "-")
+        dns_name = "{0}.".format(dns_name)
         zones = self.list_zones()
         for zone in zones:
             if zone.name == name or zone.dns_name == dns_name:
@@ -164,7 +165,7 @@ class DNSClient(dns.Client):
 
         return dict(csv=_csv, json=_json)
 
-    def create_or_replace_record_set(self, name, record_type, data, ttl=300,
+    def create_or_replace_record_set(self, name, record_type, data, ttl=3600,
                                      replace=False):
         """
         Adds or replaces a DNS resource record set
@@ -297,9 +298,9 @@ class DNSClient(dns.Client):
             - ``create`` - Creates a zone
             - ``delete`` - Deletes a zone
 
-        - ``dns_name`` - The zone's DNS name
-        - ``gcp_name`` - The zone's name in GCP (optional)
-        - ``description`` - DNS time to live (in seconds)
+        - ``dns_name``    - The zone's DNS name
+        - ``gcp_name``    - The zone's name in GCP (optional)
+        - ``description`` - The zone's description (optional)
 
         Args:
             csv_file: A file or file-like object
@@ -448,118 +449,202 @@ class DNSClient(dns.Client):
                     raise CSVError(error)
 
 
-def _main():
-    usage = """
-    gcpdns: A CLI for managing resource records on Google Cloud DNS
-    
-    Usage:
-      gcpdns <credential_file> zone dump [-f csv|json] [-o <output_file>]...
-      gcpdns <credential_file> zone create <dns_name> [<gcp_name>]
-      gcpdns <credential_file> zone delete [-y | --yes] <zone_name>
-      gcpdns <credential_file> zone apply [--verbose] [--ignore-errors] <csv_file>
-      gcpdns <credential_file> record dump <zone> [-f csv|json] [-o <output_file>]...
-      gcpdns <credential_file> record create <name> <record_type> [--ttl=<seconds>] <data>
-      gcpdns <credential_file> record replace <name> <record_type> [--ttl=<seconds>] <data>
-      gcpdns <credential_file> record delete <name> <record_type>
-      gcpdns <credential_file> record apply [--verbose] [--ignore-errors] <csv_file>
-      gcpdns -h | --help
-      gcpdns --version
-    
-    Options:
-      -h --help            Show this screen.
-      --version            Show version.
-      -y --yes             Skip action confirmation.
-      -f                   Set the screen output format [default: json].
-      -o                   Output to these files and suppress screen output.
-      --ttl=<seconds>      DNS time to live in seconds [default: 300]
-      --verbose            Enable verbose logging output.
-      --ignore-errors      Do not stop processing when an error occurs.
-  """
-    args = docopt.docopt(usage, version=__version__)
-    if args["--verbose"]:
-        logging.basicConfig(level=logging.INFO,
-                            format="%(levelname)s: %(message)s")
-    else:
-        logging.basicConfig(level=logging.WARNING,
-                            format="%(levelname)s: %(message)s")
+class _CLIConfig(object):
+    def __init__(self, credential_file, verbose=False):
+        if verbose:
+            logging.basicConfig(level=logging.INFO,
+                                format="%(levelname)s: %(message)s")
+        else:
+            logging.basicConfig(level=logging.WARNING,
+                                format="%(levelname)s: %(message)s")
 
-    scopes = ['https://www.googleapis.com/auth/cloud-platform',
-              'https://www.googleapis.com/auth/ndev.clouddns.readwrite']
-    credentials = service_account.Credentials.from_service_account_file(
-        args["<credential_file>"], scopes=scopes)
-    client = DNSClient(credentials=credentials,
-                       project=credentials.project_id)
+        scopes = ['https://www.googleapis.com/auth/cloud-platform',
+                  'https://www.googleapis.com/auth/ndev.clouddns.readwrite']
+        credentials = service_account.Credentials.from_service_account_file(
+            credential_file, scopes=scopes)
+        self.client = DNSClient(credentials=credentials,
+                                project=credentials.project_id)
 
-    if args["record"] and args["apply"]:
-        with open(args["<csv_file>"], encoding="utf-8",
-                  errors="ignore") as csv_file:
-            try:
-                client.apply_record_sets_csv(
-                    csv_file,
-                    ignore_errors=args["--ignore-errors"]
-                )
-            except Exception as e:
-                logger.error(e.__str__())
-                exit(-1)
-    elif args["zone"] and args["dump"]:
-        zones = []
-        try:
-            zones = client.dump_zones()
-        except Exception as e:
-            logger.error(e.__str__())
-            exit(-1)
-        if len(args["<output_file>"]) == 0:
-            if args["csv"]:
-                print(zones["csv"])
-            else:
-                print(zones["json"])
-        for file_path in args["<output_file>"]:
-            if file_path.lower().endswith("json"):
-                with open(file_path,
-                          "w", encoding="utf-8",
-                          newline="\n",
-                          errors="ignore") as output_file:
-                    output_file.write(zones["json"])
-            elif file_path.lower().endswith(".csv"):
-                with open(file_path,
-                          "w", encoding="utf-8",
-                          newline="\n",
-                          errors="ignore") as output_file:
-                    output_file.write(zones["csv"])
-            else:
-                logger.error("Output filenames must end in .csv or .json")
-                exit(-1)
 
-    elif args["record"] and args["dump"]:
-        records = []
-        try:
-            records = client.dump_records(args["<zone>"])
-        except Exception as e:
-            logger.error(e.__str__())
-            exit(-1)
-        if len(args["<output_file>"]) == 0:
-            if args["csv"]:
-                print(records["csv"])
-            else:
-                print(records["json"])
-        for file_path in args["<output_file>"]:
-            if file_path.lower().endswith("json"):
-                with open(file_path,
-                          "w", encoding="utf-8",
-                          newline="\n",
-                          errors="ignore") as output_file:
-                    output_file.write(records["json"])
-            elif file_path.lower().endswith(".csv"):
-                with open(file_path,
-                          "w", encoding="utf-8",
-                          newline="\n",
-                          errors="ignore") as output_file:
-                    output_file.write(records["csv"])
-            else:
-                logger.error("Output filenames must end in .csv or .json")
-                exit(-1)
-    elif args["zone"] and args["add"]:
-        client.create_zone()
+@click.group()
+@click.version_option(version=__version__)
+@click.option("--verbose", is_flag=True, help="Enable verbose logging.")
+@click.argument("credential_file",
+                type=click.Path(exists=True, dir_okay=False))
+@click.pass_context
+def _main(ctx, credential_file, verbose=False):
+    """gcpdns: A CLI for managing zones and resource record sets on
+    Google Cloud DNS."""
+    ctx.obj = _CLIConfig(credential_file, verbose=verbose)
+
+
+@_main.group("zone")
+def _zone():
+    """Manage DNS zones."""
+
+
+@_zone.command("create")
+@click.argument("dns_name")
+@click.option("--gcp_name", help="Set the zone's GCP name.")
+@click.option("--description", help="Set the zone's description.")
+@click.pass_context
+def _create_zone(ctx, dns_name, gcp_name=None, description=None):
+    """Create a DNS zone."""
+    try:
+        ctx.obj.client.create_zone(dns_name, name=gcp_name,
+                                   description=description)
+    except Exception as e:
+        logger.error(e.__str__())
+        exit(-1)
+
+
+@_zone.command("delete")
+@click.confirmation_option(prompt="Are you sure you want to delete this zone?")
+@click.argument("name")
+@click.pass_context
+def _delete_zone(ctx, name):
+    """Delete a DNS zone and all its resource records."""
+    try:
+        ctx.obj.client.delete_zone(name)
+    except Exception as e:
+        logger.error(e.__str__())
+        exit(-1)
+
+
+@_zone.command("dump")
+@click.option("--format", "-f", "format_", default="json", show_default=True,
+              type=click.Choice(["json", "csv"]),
+              help="Set the screen output format")
+@click.option("--output", "--o",
+              type=click.Path(dir_okay=False, writable=True),
+              multiple=True,
+              help="One or more output file paths that end in .csv or .json "
+                   "(suppresses screen output).")
+@click.pass_context
+def _dump_zones(ctx, format_, output):
+    """Dump a list of DNS zones."""
+    try:
+        zones = ctx.obj.client.dump_zones()
+        if len(output) == 0:
+            click.echo(zones[format_])
+        else:
+            for path in output:
+                if path.lower().endswith(".json"):
+                    with open(path, "w", encoding="utf-8",
+                              errors="ignore", newline="\n") as o_file:
+                        o_file.write(zones["json"])
+                elif path.lower().endswith(".csv"):
+                    with open(path, "w", encoding="utf-8",
+                              errors="ignore", newline="\n") as o_file:
+                        o_file.write(zones["csv"])
+    except Exception as e:
+        logger.error(e.__str__())
+        exit(-1)
+
+
+@_zone.command("apply")
+@click.argument("csv_file_path",
+                type=click.Path(exists=True, dir_okay=False))
+@click.option("--ignore-errors", is_flag=True,
+              help="Continue processing the CSV when errors occur.")
+@click.pass_context
+def _apply_zones(ctx, csv_file_path, ignore_errors):
+    """Create and delete zones based on a CSV file."""
+    try:
+        with open(csv_file_path, encoding="utf-8",
+                  errors="ignore") as file:
+            ctx.obj.client.apply_zones_csv(file, ignore_errors=ignore_errors)
+    except Exception as e:
+        logger.error(e.__str__())
+        exit(-1)
+
+
+@_main.group("record")
+def _record():
+    """Manage DNS resource record sets."""
+
+
+@_record.command("dump")
+@click.argument("zone")
+@click.option("--format", "-f", "format_", default="json", show_default=True,
+              type=click.Choice(["json", "csv"]),
+              help="Set the screen output format")
+@click.option("--output", "--o",
+              type=click.Path(dir_okay=False, writable=True),
+              multiple=True,
+              help="One or more output file paths that end in .csv or .json "
+                   "(suppresses screen output).")
+@click.pass_context
+def _dump_record_sets(ctx, zone, format_, output):
+    """Dump a list of DNS resource records."""
+    try:
+        records = ctx.obj.client.dump_records(zone)
+        if len(output) == 0:
+            click.echo(records[format_])
+        else:
+            for path in output:
+                if path.lower().endswith(".json"):
+                    with open(path, "w", encoding="utf-8",
+                              errors="ignore", newline="\n") as o_file:
+                        o_file.write(records["json"])
+                elif path.lower().endswith(".csv"):
+                    with open(path, "w", encoding="utf-8",
+                              errors="ignore", newline="\n") as o_file:
+                        o_file.write(records["csv"])
+    except Exception as e:
+        logger.error(e.__str__())
+        exit(-1)
+
+
+@_record.command("apply")
+@click.argument("csv_file_path",
+                type=click.Path(exists=True, dir_okay=False))
+@click.option("--ignore-errors", is_flag=True,
+              help="Continue processing the CSV when errors occur.")
+@click.pass_context
+def _apply_record_sets(ctx, csv_file_path, ignore_errors):
+    """Create, replace, and delete resource record sets based on a CSV file."""
+    try:
+        with open(csv_file_path, encoding="utf-8",
+                  errors="ignore") as file:
+            ctx.obj.client.apply_record_sets_csv(
+                file,
+                ignore_errors=ignore_errors)
+    except Exception as e:
+        logger.error(e.__str__())
+        exit(-1)
+
+
+@_record.command("create")
+@click.option("--replace", "-r", is_flag=True,
+              help="Replace any conflicting resource record set")
+@click.argument("name")
+@click.argument("record_type")
+@click.option("--ttl", "-t", type=int, default=3600, show_default=True,
+              metavar="seconds", help="DNS Time-To-Live in seconds")
+@click.argument("data")
+@click.pass_context
+def _create_or_replace_record_set(ctx, replace, name, record_type, ttl, data):
+    """Create a resource record set (Data fields separated by |)."""
+    try:
+        ctx.obj.client.create_or_replace_record_set(name, record_type,
+                                                    data, ttl=ttl,
+                                                    replace=replace)
+    except Exception as e:
+        logger.error(e.__str__())
+        exit(-1)
+
+
+@_record.command("delete")
+@click.argument("name")
+@click.argument("record_type")
+def _delete_record_set(ctx, name, record_type):
+    """Delete a resource record set"""
+    try:
+        ctx.obj.client.delete_resource_record_set(name, record_type)
+    except Exception as e:
+        logger.error(e.__str__())
+        exit(-1)
 
 
 if __name__ == "__main__":
