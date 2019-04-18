@@ -542,14 +542,14 @@ def _dump_zones(ctx, format_, output):
         exit(-1)
 
 
-@_zone.command("apply")
+@_zone.command("update")
 @click.argument("csv_file_path",
                 type=click.Path(exists=True, dir_okay=False))
 @click.option("--ignore-errors", is_flag=True,
               help="Continue processing the CSV when errors occur.")
 @click.pass_context
-def _apply_zones(ctx, csv_file_path, ignore_errors):
-    """Create and delete zones based on a CSV file."""
+def _apply_zones_csv(ctx, csv_file_path, ignore_errors):
+    """Create and delete zones using a CSV file."""
     try:
         with open(csv_file_path, encoding="utf-8",
                   errors="ignore") as file:
@@ -596,14 +596,14 @@ def _dump_record_sets(ctx, zone, format_, output):
         exit(-1)
 
 
-@_record.command("apply")
+@_record.command("update")
 @click.argument("csv_file_path",
                 type=click.Path(exists=True, dir_okay=False))
 @click.option("--ignore-errors", is_flag=True,
               help="Continue processing the CSV when errors occur.")
 @click.pass_context
-def _apply_record_sets(ctx, csv_file_path, ignore_errors):
-    """Create, replace, and delete resource record sets based on a CSV file."""
+def _apply_record_sets_csv(ctx, csv_file_path, ignore_errors):
+    """Create, replace, and delete resource record sets using a CSV file."""
     try:
         with open(csv_file_path, encoding="utf-8",
                   errors="ignore") as file:

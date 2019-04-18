@@ -22,11 +22,14 @@ A Python module and CLI for managing zones and resource record sets on Google Cl
 Features
 --------
 
-- Dump all project zones names in CSV or JSON format
+- Dump all project zones names in CSV and/or JSON format
+- Dump all zone resource record sets in CSV and/or JSON format
+- Create and delete zones via CLI or CSV
+- Create and delete resource record sets via CLI
 - Update DNS resource records for multiple zones in one project using one CSV
   file
-- Automatically splits ``TXT`` records longer than 255 characters when publishing
-- Automatically adds an ending ``.`` to records when needed
+- Automatically split ``TXT`` records longer than 255 characters when publishing
+- Automatically add an ending ``.`` to records when needed
 
 Setup
 -----
