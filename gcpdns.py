@@ -18,7 +18,7 @@ from google.cloud import dns
 import publicsuffix2
 import click
 
-__version__ = "1.2.3"
+__version__ = "1.2.4"
 
 ZONE_CACHE = dict()
 
@@ -644,7 +644,7 @@ def _create_or_replace_record_set(ctx, replace, name, record_type, ttl, data):
 def _delete_record_set(ctx, name, record_type):
     """Delete a resource record set"""
     try:
-        ctx.obj.client.delete_resource_record_set(name, record_type)
+        ctx.obj.client.delete_record_set(name, record_type)
     except Exception as e:
         logger.error(e.__str__())
         exit(-1)
