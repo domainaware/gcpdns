@@ -18,7 +18,7 @@ from google.cloud import dns
 import publicsuffix2
 import click
 
-__version__ = "1.2.5"
+__version__ = "1.2.6"
 
 ZONE_CACHE = dict()
 
@@ -165,7 +165,7 @@ class DNSClient(dns.Client):
 
         return dict(csv=_csv, json=_json)
 
-    def create_or_replace_record_set(self, name, record_type, data, ttl=3600,
+    def create_or_replace_record_set(self, name, record_type, data, ttl=300,
                                      replace=False):
         """
         Adds or replaces a DNS resource record set
