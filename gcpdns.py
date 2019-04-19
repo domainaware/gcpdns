@@ -18,7 +18,9 @@ from google.cloud import dns
 import publicsuffix2
 import click
 
-__version__ = "1.2.6"
+__version__ = "1.2.7"
+
+DEFAULT_TTL = 300
 
 ZONE_CACHE = dict()
 
@@ -165,7 +167,8 @@ class DNSClient(dns.Client):
 
         return dict(csv=_csv, json=_json)
 
-    def create_or_replace_record_set(self, name, record_type, data, ttl=300,
+    def create_or_replace_record_set(self, name, record_type, data,
+                                     ttl=DEFAULT_TTL,
                                      replace=False):
         """
         Adds or replaces a DNS resource record set
@@ -192,7 +195,7 @@ class DNSClient(dns.Client):
             zone.dns_name).lstrip(".")
         record_type = record_type.upper()
         if ttl is None:
-            ttl = 300
+            ttl = DEFAULT_TTL
         ttl = int(ttl)
         old_record_set = None
         change = zone.changes()
@@ -620,7 +623,7 @@ def _apply_record_sets_csv(ctx, csv_file_path, ignore_errors):
               help="Replace any conflicting resource record set")
 @click.argument("name")
 @click.argument("record_type")
-@click.option("--ttl", "-t", type=int, default=3600, show_default=True,
+@click.option("--ttl", "-t", type=int, default=DEFAULT_TTL, show_default=True,
               metavar="seconds", help="DNS Time to live (in seconds)")
 @click.argument("data")
 @click.pass_context

@@ -1,3 +1,8 @@
+1.2.7
+-----
+
+- Fix default TTL in `record create` command
+
 1.2.6
 -----
 
@@ -11,7 +16,7 @@
 1.2.4
 -----
 
-- Actually fix record delete command
+- Actually fix fix `record delete` command
 
 1.2.3
 ------
@@ -21,12 +26,12 @@
 1.2.2
 -----
 
-- Another attempt to fix record delete command
+- Another attempt to fix the `record delete` command
 
 1.2.1
 -----
 
-- Attempt to fix record delete command
+- Attempt to fix the `record delete` command
 
 1.2.0
 -----
