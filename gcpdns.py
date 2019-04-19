@@ -175,7 +175,7 @@ class DNSClient(dns.Client):
             record_type (str): The DNS record type
             data: A list of resource record data strings,
             or a string of one or more resource records separated by |
-            ttl (int): Time to live (in seconds)
+            ttl (int): DNS time to live (in seconds)
             replace (bool): Replace existing record set if needed
 
         Raises:
@@ -621,7 +621,7 @@ def _apply_record_sets_csv(ctx, csv_file_path, ignore_errors):
 @click.argument("name")
 @click.argument("record_type")
 @click.option("--ttl", "-t", type=int, default=3600, show_default=True,
-              metavar="seconds", help="DNS Time To Live (in seconds)")
+              metavar="seconds", help="DNS Time to live (in seconds)")
 @click.argument("data")
 @click.pass_context
 def _create_or_replace_record_set(ctx, replace, name, record_type, ttl, data):
