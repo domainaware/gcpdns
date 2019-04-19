@@ -18,7 +18,7 @@ from google.cloud import dns
 import publicsuffix2
 import click
 
-__version__ = "1.2.6"
+__version__ = "1.2.7"
 
 ZONE_CACHE = dict()
 
@@ -144,6 +144,8 @@ class DNSClient(dns.Client):
         zone = self.get_zone(zone_name)
         records = []
         for record in zone.list_resource_record_sets():
+            if record.record_type in ["NS", "SOA"]:
+                continue
             record_dict = collections.OrderedDict(
                 name=record.name,
                 record_type=record.record_type,
@@ -393,6 +395,8 @@ class DNSClient(dns.Client):
                 name = row["name"].lower()
                 action = row["action"].lower()
                 record_type = row["record_type"].upper()
+                if record_type in ["NS", "SOA"]:
+                    continue
             except KeyError as e:
                 error = "Line {0}: Missing {1}".format(reader.line_num,
                                                        e.__str__())
