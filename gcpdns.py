@@ -12,17 +12,20 @@ import json
 import collections
 import io
 import textwrap
+import re
 
 from google.oauth2 import service_account
 from google.cloud import dns
 import publicsuffix2
 import click
 
-__version__ = "1.2.7"
+__version__ = "1.2.8"
 
 DEFAULT_TTL = 300
 
 ZONE_CACHE = dict()
+
+QUOTE_SPACE = re.compile(r"""["'`]\s*""")
 
 logger = logging.getLogger(__name__)
 
@@ -219,11 +222,11 @@ class DNSClient(dns.Client):
                 new_data = []
                 data = data.split("|")
                 for r_set in data:
-                    r_set = r_set.strip('"')
-                    split_records = textwrap.wrap(r_set, 253)
-                    for split_record in split_records:
-                        split_record = '"{0}"'.format(split_record)
-                        new_data.append(split_record)
+                    r_set = QUOTE_SPACE.sub("", r_set)
+                    split_txt = textwrap.wrap(r_set, 253)
+                    for i in range(len(split_txt)):
+                        split_txt[i] = '"{0}"'.format(split_txt[i])
+                    new_data.append("".join(split_txt))
                 data = new_data.copy()
             else:
                 data = data.split("|")

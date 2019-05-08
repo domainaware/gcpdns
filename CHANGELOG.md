@@ -1,3 +1,8 @@
+1.2.8
+-----
+
+- Split long `TXT` records as separate strings instead of separate records
+
 1.2.7
 -----
 
