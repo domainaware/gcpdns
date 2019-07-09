@@ -207,7 +207,7 @@
 <span class="sd">            name (str): zone name or dns_name</span>
 
 <span class="sd">        Raises:</span>
-<span class="sd">            gcpclient.ZoneNotFound</span>
+<span class="sd">            gcpdns.ZoneNotFound</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">dns_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">))</span>
         <span class="n">zones</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_zones</span><span class="p">()</span>
@@ -226,7 +226,7 @@
 <span class="sd">            description (str): A description of the zone</span>
 
 <span class="sd">        Raises:</span>
-<span class="sd">            gcpclient.ZoneConflict</span>
+<span class="sd">            gcpdns.ZoneConflict</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">dns_name</span> <span class="o">=</span> <span class="n">dns_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
