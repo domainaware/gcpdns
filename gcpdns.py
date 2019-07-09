@@ -60,7 +60,7 @@ class DNSClient(dns.Client):
             name (str): zone name or dns_name
 
         Raises:
-            gcpclient.ZoneNotFound
+            gcpdns.ZoneNotFound
         """
         dns_name = "{0}.".format(name.lower().rstrip("."))
         zones = self.list_zones()
@@ -79,7 +79,7 @@ class DNSClient(dns.Client):
             description (str): A description of the zone
 
         Raises:
-            gcpclient.ZoneConflict
+            gcpdns.ZoneConflict
         """
         dns_name = dns_name.lower().rstrip(".")
         if name is None:
