@@ -345,7 +345,7 @@ file</p></li>
 </div>
 <div class="section" id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
-<p>Use <code class="docutils literal notranslate"><span class="pre">pip</span></code> (or <code class="docutils literal notranslate"><span class="pre">pip3</span></code> for Python 3)</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">pip</span></code> (or <code class="docutils literal notranslate"><span class="pre">pip3</span></code> for Python 3).</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="o">-</span><span class="n">H</span> <span class="n">pip</span> <span class="n">install</span> <span class="n">gcpdns</span>
 </pre></div>
 </div>
@@ -515,7 +515,7 @@ Google Cloud DNS</p>
 </ul>
 </dd>
 <dt class="field-even">Raises</dt>
-<dd class="field-even"><p><strong>gcpdns.RecordSetDoesNotExist</strong> – </p>
+<dd class="field-even"><p><a class="reference internal" href="#gcpdns.RecordSetNotFound" title="gcpdns.RecordSetNotFound"><strong>gcpdns.RecordSetNotFound</strong></a> – </p>
 </dd>
 </dl>
 </dd></dl>
@@ -535,7 +535,7 @@ Google Cloud DNS</p>
 <dl class="method">
 <dt id="gcpdns.DNSClient.dump_records">
 <code class="sig-name descname">dump_records</code><span class="sig-paren">(</span><em class="sig-param">zone_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gcpdns.html#DNSClient.dump_records"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gcpdns.DNSClient.dump_records" title="Permalink to this definition">¶</a></dt>
-<dd><p>Outputs all record sets for a given zone in JASON and CSV format</p>
+<dd><p>Outputs all record sets for a given zone in JSON and CSV format</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>zone_name</strong> (<em>str</em>) – The zone name or DNS name</p>
@@ -552,7 +552,7 @@ Google Cloud DNS</p>
 <dl class="method">
 <dt id="gcpdns.DNSClient.dump_zones">
 <code class="sig-name descname">dump_zones</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/gcpdns.html#DNSClient.dump_zones"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gcpdns.DNSClient.dump_zones" title="Permalink to this definition">¶</a></dt>
-<dd><p>Outputs all managed zones  for the project in JASON and CSV format</p>
+<dd><p>Outputs all managed zones  for the project in JSON and CSV format</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>A dictionary with a csv and json key</p>
@@ -608,8 +608,6 @@ Google Cloud DNS</p>
 <h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
-<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
-<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
 </ul>
 </div>
 </div>

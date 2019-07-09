@@ -255,7 +255,7 @@
 
 <div class="viewcode-block" id="DNSClient.dump_zones"><a class="viewcode-back" href="../index.html#gcpdns.DNSClient.dump_zones">[docs]</a>    <span class="k">def</span> <span class="nf">dump_zones</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Outputs all managed zones  for the project in JASON and CSV format</span>
+<span class="sd">        Outputs all managed zones  for the project in JSON and CSV format</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            dict: A dictionary with a csv and json key</span>
@@ -285,7 +285,7 @@
 
 <div class="viewcode-block" id="DNSClient.dump_records"><a class="viewcode-back" href="../index.html#gcpdns.DNSClient.dump_records">[docs]</a>    <span class="k">def</span> <span class="nf">dump_records</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zone_name</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Outputs all record sets for a given zone in JASON and CSV format</span>
+<span class="sd">        Outputs all record sets for a given zone in JSON and CSV format</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            zone_name (str): The zone name or DNS name</span>
@@ -414,7 +414,7 @@
 <span class="sd">            record_type (str): The DNS record type</span>
 
 <span class="sd">        Raises:</span>
-<span class="sd">            gcpdns.RecordSetDoesNotExist</span>
+<span class="sd">            gcpdns.RecordSetNotFound</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Deleting record set: </span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">record_type</span><span class="p">))</span>
         <span class="n">tld</span> <span class="o">=</span> <span class="n">publicsuffix2</span><span class="o">.</span><span class="n">get_public_suffix</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
