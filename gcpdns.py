@@ -375,9 +375,7 @@ class DNSClient(dns.Client):
         - ``action``
 
             - ``create`` - Creates a resource record set
-            - ``replace`` - The same as ``create``, but will replace an
-            existing resource record set with the same ``name`` and `
-            `record_type``(if it exists)
+            - ``replace`` - Creates or replaces an existing record set
             - ``delete`` - Deletes a resource record set
 
         - ``name`` - The record set name (i.e. the Fully-Qualified Domain Name)
