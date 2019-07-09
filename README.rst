@@ -73,7 +73,7 @@ gcpdns zone
 Installation
 ------------
 
-Use ``pip`` (or ``pip3`` for Python 3)
+Use ``pip`` (or ``pip3`` for Python 3).
 
 ::
 

@@ -188,7 +188,7 @@ gcpdns zone update
 Installation
 ------------
 
-Use ``pip`` (or ``pip3`` for Python 3)
+Use ``pip`` (or ``pip3`` for Python 3).
 
 ::
 
@@ -242,7 +242,5 @@ Indices and tables
 ------------------
 
 * :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 
 .. _service account: https://cloud.google.com/iam/docs/creating-managing-service-accounts

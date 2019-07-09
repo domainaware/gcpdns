@@ -108,7 +108,7 @@ class DNSClient(dns.Client):
 
     def dump_zones(self):
         """
-        Outputs all managed zones  for the project in JASON and CSV format
+        Outputs all managed zones  for the project in JSON and CSV format
 
         Returns:
             dict: A dictionary with a csv and json key
@@ -138,7 +138,7 @@ class DNSClient(dns.Client):
 
     def dump_records(self, zone_name):
         """
-        Outputs all record sets for a given zone in JASON and CSV format
+        Outputs all record sets for a given zone in JSON and CSV format
 
         Args:
             zone_name (str): The zone name or DNS name
@@ -267,7 +267,7 @@ class DNSClient(dns.Client):
             record_type (str): The DNS record type
 
         Raises:
-            gcpdns.RecordSetDoesNotExist
+            gcpdns.RecordSetNotFound
         """
         logger.info("Deleting record set: {0} {1}".format(name, record_type))
         tld = publicsuffix2.get_public_suffix(name).lower()
