@@ -1,3 +1,8 @@
+1.2.9
+-----
+
+- Update documentation
+
 1.2.8
 -----
 

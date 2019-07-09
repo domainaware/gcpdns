@@ -4,7 +4,7 @@
 """A Python module and CLI for managing zones and resource record sets on
 Google Cloud DNS"""
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
 
 import logging
 import csv
@@ -19,7 +19,7 @@ from google.cloud import dns
 import publicsuffix2
 import click
 
-__version__ = "1.2.8"
+__version__ = "1.2.9"
 
 DEFAULT_TTL = 300
 

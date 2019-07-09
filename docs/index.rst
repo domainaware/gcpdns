@@ -54,6 +54,63 @@ gcpdns record
       dump    Dump a list of DNS resource records.
       update  Create, replace, and delete resource record sets using a CSV file.
 
+gcpdns record create
+````````````````````
+
+::
+
+    Usage: gcpdns record create [OPTIONS] NAME RECORD_TYPE DATA
+
+      Create a resource record set (Data fields separated by |).
+
+    Options:
+      -r, --replace      Replace any conflicting resource record set
+      -t, --ttl seconds  DNS Time to live (in seconds)  [default: 300]
+      --help             Show this message and exit.
+
+gcpdns record delete
+````````````````````
+
+::
+
+    Usage: gcpdns record delete [OPTIONS] NAME RECORD_TYPE
+
+      Delete a resource record set
+
+    Options:
+      --yes   Confirm the action without prompting.
+      --help  Show this message and exit.
+
+
+gcpdns record dump
+``````````````````
+
+::
+
+    Usage: gcpdns record dump [OPTIONS] ZONE
+
+      Dump a list of DNS resource records.
+
+    Options:
+      -f, --format [json|csv]  Set the screen output format  [default: json]
+      -o, --output FILE        One or more output file paths that end in .csv or
+                               .json (suppresses screen output).
+      --help                   Show this message and exit.
+
+gcpdns record update
+````````````````````
+
+::
+
+    Usage: gcpdns record update [OPTIONS] CSV_FILE_PATH
+
+      Create, replace, and delete resource record sets using a CSV file.
+
+    Options:
+      --ignore-errors  Continue processing the CSV when errors occur.
+      --help           Show this message and exit.
+
+
 gcpdns zone
 ~~~~~~~~~~~
 
@@ -69,6 +126,64 @@ gcpdns zone
       delete  Delete a DNS zone and all its resource records.
       dump    Dump a list of DNS zones.
       update  Create and delete zones using a CSV file.
+
+
+gcpdns zone create
+``````````````````
+
+::
+
+    Usage: gcpdns zone create [OPTIONS] DNS_NAME
+
+      Create a DNS zone.
+
+    Options:
+      --gcp_name TEXT     Set the zone's GCP name.
+      --description TEXT  Set the zone's description.
+      --help              Show this message and exit.
+
+gcpdns zone delete
+``````````````````
+
+::
+
+    Usage: gcpdns zone delete [OPTIONS] NAME
+
+      Delete a DNS zone and all its resource records.
+
+    Options:
+      --yes   Confirm the action without prompting.
+      --help  Show this message and exit.
+
+
+gcpdns zone dump
+````````````````
+
+::
+
+    Usage: gcpdns zone dump [OPTIONS]
+
+      Dump a list of DNS zones.
+
+    Options:
+      -f, --format [json|csv]  Set the screen output format  [default: json]
+      -o, --output FILE        One or more output file paths that end in .csv or
+                               .json (suppresses screen output).
+      --help                   Show this message and exit.
+
+gcpdns zone update
+``````````````````
+
+::
+
+    Usage: gcpdns zone update [OPTIONS] CSV_FILE_PATH
+
+      Create and delete zones using a CSV file.
+
+    Options:
+      --ignore-errors  Continue processing the CSV when errors occur.
+      --help           Show this message and exit.
+
 
 Installation
 ------------
@@ -116,5 +231,18 @@ Record CSV fields
 - ``record_type`` - The DNS record type
 - ``ttl`` - DNS time to live (in seconds)
 - ``data`` - DNS record data separated by ``|``
+
+Python API
+----------
+
+.. automodule:: gcpdns
+   :members:
+
+Indices and tables
+------------------
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
 
 .. _service account: https://cloud.google.com/iam/docs/creating-managing-service-accounts
