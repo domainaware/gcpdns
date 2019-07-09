@@ -1,0 +1,847 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>gcpdns &mdash; gcpdns 1.2.9 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> gcpdns
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.2.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">gcpdns</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>gcpdns</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for gcpdns</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;A Python module and CLI for managing zones and resource record sets on</span>
+<span class="sd">Google Cloud DNS&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">textwrap</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">from</span> <span class="nn">google.oauth2</span> <span class="k">import</span> <span class="n">service_account</span>
+<span class="kn">from</span> <span class="nn">google.cloud</span> <span class="k">import</span> <span class="n">dns</span>
+<span class="kn">import</span> <span class="nn">publicsuffix2</span>
+<span class="kn">import</span> <span class="nn">click</span>
+
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;1.2.9&quot;</span>
+
+<span class="n">DEFAULT_TTL</span> <span class="o">=</span> <span class="mi">300</span>
+
+<span class="n">ZONE_CACHE</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+<span class="n">QUOTE_SPACE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;[&quot;&#39;`]\s*&quot;&quot;&quot;</span><span class="p">)</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ZoneNotFound"><a class="viewcode-back" href="../index.html#gcpdns.ZoneNotFound">[docs]</a><span class="k">class</span> <span class="nc">ZoneNotFound</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Raised when a requested zone is not found&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="ZoneConflict"><a class="viewcode-back" href="../index.html#gcpdns.ZoneConflict">[docs]</a><span class="k">class</span> <span class="nc">ZoneConflict</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Raised when a conflicting zone already exists&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="RecordSetNotFound"><a class="viewcode-back" href="../index.html#gcpdns.RecordSetNotFound">[docs]</a><span class="k">class</span> <span class="nc">RecordSetNotFound</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Raised when a record set is not found&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="ExistingRecordSetFound"><a class="viewcode-back" href="../index.html#gcpdns.ExistingRecordSetFound">[docs]</a><span class="k">class</span> <span class="nc">ExistingRecordSetFound</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Raised when an existing record set is found&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="CSVError"><a class="viewcode-back" href="../index.html#gcpdns.CSVError">[docs]</a><span class="k">class</span> <span class="nc">CSVError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Raised when a CSV parsing error occurs&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="DNSClient"><a class="viewcode-back" href="../index.html#gcpdns.DNSClient">[docs]</a><span class="k">class</span> <span class="nc">DNSClient</span><span class="p">(</span><span class="n">dns</span><span class="o">.</span><span class="n">Client</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;An extended Google DNS client with helper functions&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="DNSClient.get_zone"><a class="viewcode-back" href="../index.html#gcpdns.DNSClient.get_zone">[docs]</a>    <span class="k">def</span> <span class="nf">get_zone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a Zone object by zone name or DNS name</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): zone name or dns_name</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            gcpclient.ZoneNotFound</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dns_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">))</span>
+        <span class="n">zones</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_zones</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">zone</span> <span class="ow">in</span> <span class="n">zones</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">zone</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">zone</span><span class="o">.</span><span class="n">dns_name</span> <span class="o">==</span> <span class="n">dns_name</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">zone</span>
+        <span class="k">raise</span> <span class="n">ZoneNotFound</span><span class="p">(</span><span class="s2">&quot;The zone named </span><span class="si">{0}</span><span class="s2"> was not found&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="DNSClient.create_zone"><a class="viewcode-back" href="../index.html#gcpdns.DNSClient.create_zone">[docs]</a>    <span class="k">def</span> <span class="nf">create_zone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dns_name</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a DNS zone</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dns_name (str): The zone&#39;s DNS name</span>
+<span class="sd">            name (str): the zone&#39;s GCP name</span>
+<span class="sd">            description (str): A description of the zone</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            gcpclient.ZoneConflict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dns_name</span> <span class="o">=</span> <span class="n">dns_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">dns_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">)</span>
+        <span class="n">dns_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dns_name</span><span class="p">)</span>
+        <span class="n">zones</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_zones</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">zone</span> <span class="ow">in</span> <span class="n">zones</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">zone</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">zone</span><span class="o">.</span><span class="n">dns_name</span> <span class="o">==</span> <span class="n">dns_name</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ZoneConflict</span><span class="p">(</span>
+                    <span class="s2">&quot;A conflicting zone already exists: </span><span class="si">{0}</span><span class="s2"> (</span><span class="si">{1}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">zone</span><span class="o">.</span><span class="n">dns_name</span><span class="p">,</span> <span class="n">zone</span><span class="o">.</span><span class="n">name</span>
+                    <span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zone</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dns_name</span><span class="o">=</span><span class="n">dns_name</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">)</span><span class="o">.</span><span class="n">create</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DNSClient.delete_zone"><a class="viewcode-back" href="../index.html#gcpdns.DNSClient.delete_zone">[docs]</a>    <span class="k">def</span> <span class="nf">delete_zone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zone_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Deletes a zone</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            zone_name: The zone&#39;s DNS name of GCP name</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_zone</span><span class="p">(</span><span class="n">zone_name</span><span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DNSClient.dump_zones"><a class="viewcode-back" href="../index.html#gcpdns.DNSClient.dump_zones">[docs]</a>    <span class="k">def</span> <span class="nf">dump_zones</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Outputs all managed zones  for the project in JASON and CSV format</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: A dictionary with a csv and json key</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">zones</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">zone</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_zones</span><span class="p">():</span>
+            <span class="n">zone_dict</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">(</span>
+                <span class="n">dns_name</span><span class="o">=</span><span class="n">zone</span><span class="o">.</span><span class="n">dns_name</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">zone</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">created</span><span class="o">=</span><span class="n">zone</span><span class="o">.</span><span class="n">created</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+                <span class="n">description</span><span class="o">=</span><span class="n">zone</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
+                <span class="n">name_servers</span><span class="o">=</span><span class="n">zone</span><span class="o">.</span><span class="n">name_servers</span><span class="p">)</span>
+            <span class="n">zones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">zone_dict</span><span class="p">)</span>
+        <span class="n">_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">zones</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">csv_str</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()</span>
+        <span class="n">csv_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;dns_name&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;created&quot;</span><span class="p">,</span>
+                      <span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="s2">&quot;name_servers&quot;</span><span class="p">]</span>
+        <span class="n">csv_rows</span> <span class="o">=</span> <span class="n">zones</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">zone</span> <span class="ow">in</span> <span class="n">csv_rows</span><span class="p">:</span>
+            <span class="n">zone</span><span class="p">[</span><span class="s2">&quot;name_servers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;|&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">zone</span><span class="p">[</span><span class="s2">&quot;name_servers&quot;</span><span class="p">])</span>
+        <span class="n">csv_writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictWriter</span><span class="p">(</span><span class="n">csv_str</span><span class="p">,</span> <span class="n">fieldnames</span><span class="o">=</span><span class="n">csv_fields</span><span class="p">)</span>
+        <span class="n">csv_writer</span><span class="o">.</span><span class="n">writeheader</span><span class="p">()</span>
+        <span class="n">csv_writer</span><span class="o">.</span><span class="n">writerows</span><span class="p">(</span><span class="n">csv_rows</span><span class="p">)</span>
+        <span class="n">_csv</span> <span class="o">=</span> <span class="n">csv_str</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">csv</span><span class="o">=</span><span class="n">_csv</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="n">_json</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DNSClient.dump_records"><a class="viewcode-back" href="../index.html#gcpdns.DNSClient.dump_records">[docs]</a>    <span class="k">def</span> <span class="nf">dump_records</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zone_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Outputs all record sets for a given zone in JASON and CSV format</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            zone_name (str): The zone name or DNS name</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: A dictionary with a csv and json key</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">zone</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_zone</span><span class="p">(</span><span class="n">zone_name</span><span class="p">)</span>
+        <span class="n">records</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">zone</span><span class="o">.</span><span class="n">list_resource_record_sets</span><span class="p">():</span>
+            <span class="n">record_dict</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">record_type</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">record_type</span><span class="p">,</span>
+                <span class="n">ttl</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">ttl</span><span class="p">,</span>
+                <span class="n">data</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">rrdatas</span>
+            <span class="p">)</span>
+            <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record_dict</span><span class="p">)</span>
+
+        <span class="n">_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">csv_str</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()</span>
+        <span class="n">csv_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;record_type&quot;</span><span class="p">,</span> <span class="s2">&quot;ttl&quot;</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">]</span>
+        <span class="n">csv_rows</span> <span class="o">=</span> <span class="n">records</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">zone</span> <span class="ow">in</span> <span class="n">csv_rows</span><span class="p">:</span>
+            <span class="n">zone</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;|&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">zone</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">])</span>
+        <span class="n">csv_writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictWriter</span><span class="p">(</span><span class="n">csv_str</span><span class="p">,</span> <span class="n">fieldnames</span><span class="o">=</span><span class="n">csv_fields</span><span class="p">)</span>
+        <span class="n">csv_writer</span><span class="o">.</span><span class="n">writeheader</span><span class="p">()</span>
+        <span class="n">csv_writer</span><span class="o">.</span><span class="n">writerows</span><span class="p">(</span><span class="n">csv_rows</span><span class="p">)</span>
+        <span class="n">_csv</span> <span class="o">=</span> <span class="n">csv_str</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">csv</span><span class="o">=</span><span class="n">_csv</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="n">_json</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DNSClient.create_or_replace_record_set"><a class="viewcode-back" href="../index.html#gcpdns.DNSClient.create_or_replace_record_set">[docs]</a>    <span class="k">def</span> <span class="nf">create_or_replace_record_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span>
+                                     <span class="n">ttl</span><span class="o">=</span><span class="n">DEFAULT_TTL</span><span class="p">,</span>
+                                     <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds or replaces a DNS resource record set</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): The DNS name (i.e. the fully-qualified domain name)</span>
+<span class="sd">            record_type (str): The DNS record type</span>
+<span class="sd">            data: A list of resource record data strings,</span>
+<span class="sd">            or a string of one or more resource records separated by |</span>
+<span class="sd">            ttl (int): DNS time to live (in seconds)</span>
+<span class="sd">            replace (bool): Replace existing record set if needed</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            gcpdns.ExistingRecordSetFound</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tld</span> <span class="o">=</span> <span class="n">publicsuffix2</span><span class="o">.</span><span class="n">get_public_suffix</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">tld</span> <span class="ow">in</span> <span class="n">ZONE_CACHE</span><span class="p">:</span>
+            <span class="n">zone</span> <span class="o">=</span> <span class="n">ZONE_CACHE</span><span class="p">[</span><span class="n">tld</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">zone</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_zone</span><span class="p">(</span><span class="n">tld</span><span class="p">)</span>
+            <span class="n">ZONE_CACHE</span><span class="p">[</span><span class="n">tld</span><span class="p">]</span> <span class="o">=</span> <span class="n">zone</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">zone</span><span class="o">.</span><span class="n">dns_name</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">),</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+            <span class="n">zone</span><span class="o">.</span><span class="n">dns_name</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+        <span class="n">record_type</span> <span class="o">=</span> <span class="n">record_type</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">ttl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ttl</span> <span class="o">=</span> <span class="n">DEFAULT_TTL</span>
+        <span class="n">ttl</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ttl</span><span class="p">)</span>
+        <span class="n">old_record_set</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">change</span> <span class="o">=</span> <span class="n">zone</span><span class="o">.</span><span class="n">changes</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">r_set</span> <span class="ow">in</span> <span class="n">zone</span><span class="o">.</span><span class="n">list_resource_record_sets</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">r_set</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span> <span class="ow">and</span> <span class="n">r_set</span><span class="o">.</span><span class="n">record_type</span> <span class="o">==</span> <span class="n">record_type</span><span class="p">:</span>
+                <span class="n">old_record_set</span> <span class="o">=</span> <span class="n">r_set</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">replace</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ExistingRecordSetFound</span><span class="p">(</span>
+                        <span class="s2">&quot;Existing record set found: </span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2"> </span><span class="si">{2}</span><span class="s2"> </span><span class="si">{3}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">r_set</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                            <span class="n">r_set</span><span class="o">.</span><span class="n">record_type</span><span class="p">,</span>
+                            <span class="n">r_set</span><span class="o">.</span><span class="n">ttl</span><span class="p">,</span>
+                            <span class="n">r_set</span><span class="o">.</span><span class="n">rrdatas</span>
+                        <span class="p">))</span>
+                <span class="n">change</span><span class="o">.</span><span class="n">delete_record_set</span><span class="p">(</span><span class="n">r_set</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">record_type</span> <span class="o">==</span> <span class="s2">&quot;CNAME&quot;</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">))</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">data</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">record_type</span> <span class="o">==</span> <span class="s2">&quot;TXT&quot;</span><span class="p">:</span>
+                <span class="n">new_data</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;|&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">r_set</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                    <span class="n">r_set</span> <span class="o">=</span> <span class="n">QUOTE_SPACE</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">r_set</span><span class="p">)</span>
+                    <span class="n">split_txt</span> <span class="o">=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">wrap</span><span class="p">(</span><span class="n">r_set</span><span class="p">,</span> <span class="mi">253</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">split_txt</span><span class="p">)):</span>
+                        <span class="n">split_txt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&quot;</span><span class="si">{0}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">split_txt</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="n">new_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">split_txt</span><span class="p">))</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">new_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;|&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">record_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;CNAME&quot;</span><span class="p">,</span> <span class="s2">&quot;MX&quot;</span><span class="p">,</span> <span class="s2">&quot;NS&quot;</span><span class="p">,</span> <span class="s2">&quot;PTR&quot;</span><span class="p">,</span> <span class="s2">&quot;SRV&quot;</span><span class="p">]:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)):</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">old_record_set</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Adding record set: </span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2"> </span><span class="si">{2}</span><span class="s2"> </span><span class="si">{3}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="n">record_type</span><span class="p">,</span>
+                    <span class="n">ttl</span><span class="p">,</span>
+                    <span class="n">data</span>
+                <span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Replacing record set: </span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2"> </span><span class="si">{2}</span><span class="s2"> </span><span class="si">{3}</span><span class="s2"> &quot;</span>
+                <span class="s2">&quot;with: </span><span class="si">{4}</span><span class="s2"> </span><span class="si">{5}</span><span class="s2"> </span><span class="si">{6}</span><span class="s2"> </span><span class="si">{7}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">old_record_set</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">old_record_set</span><span class="o">.</span><span class="n">record_type</span><span class="p">,</span>
+                    <span class="n">old_record_set</span><span class="o">.</span><span class="n">ttl</span><span class="p">,</span>
+                    <span class="n">old_record_set</span><span class="o">.</span><span class="n">rrdatas</span><span class="p">,</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="n">record_type</span><span class="p">,</span>
+                    <span class="n">ttl</span><span class="p">,</span>
+                    <span class="n">data</span>
+                <span class="p">))</span>
+        <span class="n">r_set</span> <span class="o">=</span> <span class="n">zone</span><span class="o">.</span><span class="n">resource_record_set</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span> <span class="n">ttl</span><span class="p">,</span> <span class="n">rrdatas</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">change</span><span class="o">.</span><span class="n">add_record_set</span><span class="p">(</span><span class="n">r_set</span><span class="p">)</span>
+        <span class="n">change</span><span class="o">.</span><span class="n">create</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DNSClient.delete_record_set"><a class="viewcode-back" href="../index.html#gcpdns.DNSClient.delete_record_set">[docs]</a>    <span class="k">def</span> <span class="nf">delete_record_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">record_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Deletes a record set</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): The DNS name (i.e. the fully-qualified domain name)</span>
+<span class="sd">            record_type (str): The DNS record type</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            gcpdns.RecordSetDoesNotExist</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Deleting record set: </span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">record_type</span><span class="p">))</span>
+        <span class="n">tld</span> <span class="o">=</span> <span class="n">publicsuffix2</span><span class="o">.</span><span class="n">get_public_suffix</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">tld</span> <span class="ow">in</span> <span class="n">ZONE_CACHE</span><span class="p">:</span>
+            <span class="n">zone</span> <span class="o">=</span> <span class="n">ZONE_CACHE</span><span class="p">[</span><span class="n">tld</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">zone</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_zone</span><span class="p">(</span><span class="n">tld</span><span class="p">)</span>
+            <span class="n">ZONE_CACHE</span><span class="p">[</span><span class="n">tld</span><span class="p">]</span> <span class="o">=</span> <span class="n">zone</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">zone</span><span class="o">.</span><span class="n">dns_name</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">),</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+            <span class="n">zone</span><span class="o">.</span><span class="n">dns_name</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+        <span class="n">record_type</span> <span class="o">=</span> <span class="n">record_type</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="n">record_to_delete</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">change</span> <span class="o">=</span> <span class="n">zone</span><span class="o">.</span><span class="n">changes</span><span class="p">()</span>
+        <span class="n">records</span> <span class="o">=</span> <span class="n">zone</span><span class="o">.</span><span class="n">list_resource_record_sets</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">records</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span> <span class="ow">and</span> <span class="n">record</span><span class="o">.</span><span class="n">record_type</span> <span class="o">==</span> <span class="n">record_type</span><span class="p">:</span>
+                <span class="n">record_to_delete</span> <span class="o">=</span> <span class="n">record</span>
+        <span class="k">if</span> <span class="n">record_to_delete</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">change</span><span class="o">.</span><span class="n">delete_record_set</span><span class="p">(</span><span class="n">record_to_delete</span><span class="p">)</span>
+            <span class="n">change</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">RecordSetNotFound</span><span class="p">(</span>
+                <span class="s2">&quot;Record set not found: </span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
+                                                       <span class="n">record_type</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="DNSClient.apply_zones_csv"><a class="viewcode-back" href="../index.html#gcpdns.DNSClient.apply_zones_csv">[docs]</a>    <span class="k">def</span> <span class="nf">apply_zones_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">csv_file</span><span class="p">,</span> <span class="n">ignore_errors</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply a CSV of zones</span>
+
+<span class="sd">        The CSV fields are:</span>
+<span class="sd">        - ``action``</span>
+
+<span class="sd">            - ``create`` - Creates a zone</span>
+<span class="sd">            - ``delete`` - Deletes a zone</span>
+
+<span class="sd">        - ``dns_name``    - The zone&#39;s DNS name</span>
+<span class="sd">        - ``gcp_name``    - The zone&#39;s name in GCP (optional)</span>
+<span class="sd">        - ``description`` - The zone&#39;s description (optional)</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            csv_file: A file or file-like object</span>
+<span class="sd">            ignore_errors (bool): Log errors instead of raising an exception</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            gcpdns.CSVError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Applying zones CSV&quot;</span><span class="p">)</span>
+        <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">csv_file</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">dns_name</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dns_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="n">action</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;action&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;Line </span><span class="si">{0}</span><span class="s2">: Missing field: {1)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reader</span><span class="o">.</span><span class="n">line_num</span><span class="p">,</span>
+                                                              <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+                <span class="k">if</span> <span class="n">ignore_errors</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">CSVError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+
+            <span class="n">gcp_name</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="s2">&quot;gcp_name&quot;</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+                <span class="n">gcp_name</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;gcp_name&quot;</span><span class="p">]</span>
+            <span class="n">description</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="s2">&quot;description&quot;</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+                <span class="n">description</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;description&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;delete&quot;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">delete_zone</span><span class="p">(</span><span class="n">dns_name</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">ZoneNotFound</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;Line </span><span class="si">{0}</span><span class="s2">: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reader</span><span class="o">.</span><span class="n">line_num</span><span class="p">,</span>
+                                                   <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+                    <span class="k">if</span> <span class="n">ignore_errors</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">CSVError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;create&quot;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">create_zone</span><span class="p">(</span><span class="n">dns_name</span><span class="o">=</span><span class="n">dns_name</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">gcp_name</span><span class="p">,</span>
+                                     <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">ZoneConflict</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;Line </span><span class="si">{0}</span><span class="s2">: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reader</span><span class="o">.</span><span class="n">line_num</span><span class="p">,</span>
+                                                   <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+                    <span class="k">if</span> <span class="n">ignore_errors</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">CSVError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;Line </span><span class="si">{0}</span><span class="s2">: Invalid action&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">reader</span><span class="o">.</span><span class="n">line_num</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ignore_errors</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">CSVError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DNSClient.apply_record_sets_csv"><a class="viewcode-back" href="../index.html#gcpdns.DNSClient.apply_record_sets_csv">[docs]</a>    <span class="k">def</span> <span class="nf">apply_record_sets_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">csv_file</span><span class="p">,</span> <span class="n">ignore_errors</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply a CSV of record set changes</span>
+
+<span class="sd">        The CSV fields are:</span>
+<span class="sd">        - ``action``</span>
+
+<span class="sd">            - ``create`` - Creates a resource record set</span>
+<span class="sd">            - ``replace`` - Creates or replaces an existing record set</span>
+<span class="sd">            - ``delete`` - Deletes a resource record set</span>
+
+<span class="sd">        - ``name`` - The record set name (i.e. the Fully-Qualified Domain Name)</span>
+<span class="sd">        - ``record_type`` - The DNS record type</span>
+<span class="sd">        - ``ttl`` - DNS time to live (in seconds)</span>
+<span class="sd">        - ``data`` - DNS record data separated by ``|``</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            csv_file: A file or file-like object</span>
+<span class="sd">            ignore_errors (bool): Log errors instead of raising an exception</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            gcpdns.CSVError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Applying record sets CSV&quot;</span><span class="p">)</span>
+        <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">csv_file</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="n">action</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;action&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="n">record_type</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;record_type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;Line </span><span class="si">{0}</span><span class="s2">: Missing </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reader</span><span class="o">.</span><span class="n">line_num</span><span class="p">,</span>
+                                                       <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+                <span class="k">if</span> <span class="n">ignore_errors</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">CSVError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="n">ttl</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="s2">&quot;ttl&quot;</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+                <span class="n">ttl</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;ttl&quot;</span><span class="p">])</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="s2">&quot;data&quot;</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;delete&quot;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">delete_record_set</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">record_type</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">RecordSetNotFound</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;Line </span><span class="si">{0}</span><span class="s2">: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reader</span><span class="o">.</span><span class="n">line_num</span><span class="p">,</span>
+                                                   <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+                    <span class="k">if</span> <span class="n">ignore_errors</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">CSVError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">action</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="s2">&quot;replace&quot;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">replace</span> <span class="o">=</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;replace&quot;</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">create_or_replace_record_set</span><span class="p">(</span>
+                            <span class="n">name</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span>
+                            <span class="n">data</span><span class="p">,</span> <span class="n">ttl</span><span class="o">=</span><span class="n">ttl</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="n">replace</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="n">ExistingRecordSetFound</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                        <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;Line </span><span class="si">{0}</span><span class="s2">: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reader</span><span class="o">.</span><span class="n">line_num</span><span class="p">,</span>
+                                                       <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+                        <span class="k">if</span> <span class="n">ignore_errors</span><span class="p">:</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="n">CSVError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;Line </span><span class="si">{0}</span><span class="s2">: Missing data&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">reader</span><span class="o">.</span><span class="n">line_num</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">ignore_errors</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">CSVError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;Line </span><span class="si">{0}</span><span class="s2">: Invalid action&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">reader</span><span class="o">.</span><span class="n">line_num</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ignore_errors</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">CSVError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">_CLIConfig</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">credential_file</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
+                                <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(levelname)s</span><span class="s2">: </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">,</span>
+                                <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(levelname)s</span><span class="s2">: </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">scopes</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;https://www.googleapis.com/auth/cloud-platform&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;https://www.googleapis.com/auth/ndev.clouddns.readwrite&#39;</span><span class="p">]</span>
+        <span class="n">credentials</span> <span class="o">=</span> <span class="n">service_account</span><span class="o">.</span><span class="n">Credentials</span><span class="o">.</span><span class="n">from_service_account_file</span><span class="p">(</span>
+            <span class="n">credential_file</span><span class="p">,</span> <span class="n">scopes</span><span class="o">=</span><span class="n">scopes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">DNSClient</span><span class="p">(</span><span class="n">credentials</span><span class="o">=</span><span class="n">credentials</span><span class="p">,</span>
+                                <span class="n">project</span><span class="o">=</span><span class="n">credentials</span><span class="o">.</span><span class="n">project_id</span><span class="p">)</span>
+
+
+<span class="nd">@click</span><span class="o">.</span><span class="n">group</span><span class="p">()</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">version_option</span><span class="p">(</span><span class="n">version</span><span class="o">=</span><span class="n">__version__</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--verbose&quot;</span><span class="p">,</span> <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable verbose logging.&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s2">&quot;credential_file&quot;</span><span class="p">,</span>
+                <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dir_okay</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+<span class="k">def</span> <span class="nf">_main</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">credential_file</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;gcpdns: A CLI for managing zones and resource record sets on</span>
+<span class="sd">    Google Cloud DNS.&quot;&quot;&quot;</span>
+    <span class="n">ctx</span><span class="o">.</span><span class="n">obj</span> <span class="o">=</span> <span class="n">_CLIConfig</span><span class="p">(</span><span class="n">credential_file</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+
+<span class="nd">@_main</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;zone&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_zone</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Manage DNS zones.&quot;&quot;&quot;</span>
+
+
+<span class="nd">@_zone</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s2">&quot;dns_name&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--gcp_name&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Set the zone&#39;s GCP name.&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--description&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Set the zone&#39;s description.&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+<span class="k">def</span> <span class="nf">_create_zone</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">dns_name</span><span class="p">,</span> <span class="n">gcp_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a DNS zone.&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">obj</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">create_zone</span><span class="p">(</span><span class="n">dns_name</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">gcp_name</span><span class="p">,</span>
+                                   <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+        <span class="n">exit</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="nd">@_zone</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="s2">&quot;delete&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">confirmation_option</span><span class="p">(</span><span class="n">prompt</span><span class="o">=</span><span class="s2">&quot;Are you sure you want to delete this zone?&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+<span class="k">def</span> <span class="nf">_delete_zone</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Delete a DNS zone and all its resource records.&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">obj</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">delete_zone</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+        <span class="n">exit</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="nd">@_zone</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="s2">&quot;dump&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--format&quot;</span><span class="p">,</span> <span class="s2">&quot;-f&quot;</span><span class="p">,</span> <span class="s2">&quot;format_&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="n">show_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+              <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">Choice</span><span class="p">([</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="s2">&quot;csv&quot;</span><span class="p">]),</span>
+              <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Set the screen output format&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--output&quot;</span><span class="p">,</span> <span class="s2">&quot;-o&quot;</span><span class="p">,</span>
+              <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dir_okay</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">writable</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+              <span class="n">multiple</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+              <span class="n">help</span><span class="o">=</span><span class="s2">&quot;One or more output file paths that end in .csv or .json &quot;</span>
+                   <span class="s2">&quot;(suppresses screen output).&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+<span class="k">def</span> <span class="nf">_dump_zones</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">format_</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Dump a list of DNS zones.&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">zones</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">obj</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">dump_zones</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">zones</span><span class="p">[</span><span class="n">format_</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.json&quot;</span><span class="p">):</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">,</span>
+                              <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">o_file</span><span class="p">:</span>
+                        <span class="n">o_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">zones</span><span class="p">[</span><span class="s2">&quot;json&quot;</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">path</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.csv&quot;</span><span class="p">):</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">,</span>
+                              <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">o_file</span><span class="p">:</span>
+                        <span class="n">o_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">zones</span><span class="p">[</span><span class="s2">&quot;csv&quot;</span><span class="p">])</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+        <span class="n">exit</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="nd">@_zone</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="s2">&quot;update&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s2">&quot;csv_file_path&quot;</span><span class="p">,</span>
+                <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dir_okay</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--ignore-errors&quot;</span><span class="p">,</span> <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+              <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Continue processing the CSV when errors occur.&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+<span class="k">def</span> <span class="nf">_apply_zones_csv</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">csv_file_path</span><span class="p">,</span> <span class="n">ignore_errors</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create and delete zones using a CSV file.&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">csv_file_path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">,</span>
+                  <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">obj</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">apply_zones_csv</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">ignore_errors</span><span class="o">=</span><span class="n">ignore_errors</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+        <span class="n">exit</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="nd">@_main</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;record&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_record</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Manage DNS resource record sets.&quot;&quot;&quot;</span>
+
+
+<span class="nd">@_record</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="s2">&quot;dump&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s2">&quot;zone&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--format&quot;</span><span class="p">,</span> <span class="s2">&quot;-f&quot;</span><span class="p">,</span> <span class="s2">&quot;format_&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="n">show_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+              <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">Choice</span><span class="p">([</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="s2">&quot;csv&quot;</span><span class="p">]),</span>
+              <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Set the screen output format&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--output&quot;</span><span class="p">,</span> <span class="s2">&quot;-o&quot;</span><span class="p">,</span>
+              <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dir_okay</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">writable</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+              <span class="n">multiple</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+              <span class="n">help</span><span class="o">=</span><span class="s2">&quot;One or more output file paths that end in .csv or .json &quot;</span>
+                   <span class="s2">&quot;(suppresses screen output).&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+<span class="k">def</span> <span class="nf">_dump_record_sets</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">zone</span><span class="p">,</span> <span class="n">format_</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Dump a list of DNS resource records.&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">records</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">obj</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">dump_records</span><span class="p">(</span><span class="n">zone</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">click</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="n">records</span><span class="p">[</span><span class="n">format_</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.json&quot;</span><span class="p">):</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">,</span>
+                              <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">o_file</span><span class="p">:</span>
+                        <span class="n">o_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">records</span><span class="p">[</span><span class="s2">&quot;json&quot;</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">path</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.csv&quot;</span><span class="p">):</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">,</span>
+                              <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">o_file</span><span class="p">:</span>
+                        <span class="n">o_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">records</span><span class="p">[</span><span class="s2">&quot;csv&quot;</span><span class="p">])</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+        <span class="n">exit</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="nd">@_record</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="s2">&quot;update&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s2">&quot;csv_file_path&quot;</span><span class="p">,</span>
+                <span class="nb">type</span><span class="o">=</span><span class="n">click</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dir_okay</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--ignore-errors&quot;</span><span class="p">,</span> <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+              <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Continue processing the CSV when errors occur.&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+<span class="k">def</span> <span class="nf">_apply_record_sets_csv</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">csv_file_path</span><span class="p">,</span> <span class="n">ignore_errors</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create, replace, and delete resource record sets using a CSV file.&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">csv_file_path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">,</span>
+                  <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">obj</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">apply_record_sets_csv</span><span class="p">(</span>
+                <span class="n">file</span><span class="p">,</span>
+                <span class="n">ignore_errors</span><span class="o">=</span><span class="n">ignore_errors</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+        <span class="n">exit</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="nd">@_record</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="s2">&quot;create&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--replace&quot;</span><span class="p">,</span> <span class="s2">&quot;-r&quot;</span><span class="p">,</span> <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+              <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Replace any conflicting resource record set&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s2">&quot;record_type&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--ttl&quot;</span><span class="p">,</span> <span class="s2">&quot;-t&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_TTL</span><span class="p">,</span> <span class="n">show_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+              <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;seconds&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;DNS Time to live (in seconds)&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+<span class="k">def</span> <span class="nf">_create_or_replace_record_set</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">replace</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span> <span class="n">ttl</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a resource record set (Data fields separated by |).&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">obj</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">create_or_replace_record_set</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">record_type</span><span class="p">,</span>
+                                                    <span class="n">data</span><span class="p">,</span> <span class="n">ttl</span><span class="o">=</span><span class="n">ttl</span><span class="p">,</span>
+                                                    <span class="n">replace</span><span class="o">=</span><span class="n">replace</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+        <span class="n">exit</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="nd">@_record</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="s2">&quot;delete&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s2">&quot;record_type&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">confirmation_option</span><span class="p">(</span>
+    <span class="n">prompt</span><span class="o">=</span><span class="s2">&quot;Are you sure you want to delete this resource record set?&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+<span class="k">def</span> <span class="nf">_delete_record_set</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">record_type</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Delete a resource record set&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">obj</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">delete_record_set</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">record_type</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+        <span class="n">exit</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">_main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Sean Whalen
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

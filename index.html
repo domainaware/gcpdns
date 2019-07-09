@@ -1,0 +1,657 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>gcpdns &mdash; gcpdns 1.2.9 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="#" class="icon icon-home"> gcpdns
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.2.9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">gcpdns</a><ul>
+<li><a class="reference internal" href="#features">Features</a></li>
+<li><a class="reference internal" href="#cli">CLI</a><ul>
+<li><a class="reference internal" href="#gcpdns-record">gcpdns record</a><ul>
+<li><a class="reference internal" href="#gcpdns-record-create">gcpdns record create</a></li>
+<li><a class="reference internal" href="#gcpdns-record-delete">gcpdns record delete</a></li>
+<li><a class="reference internal" href="#gcpdns-record-dump">gcpdns record dump</a></li>
+<li><a class="reference internal" href="#gcpdns-record-update">gcpdns record update</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#gcpdns-zone">gcpdns zone</a><ul>
+<li><a class="reference internal" href="#gcpdns-zone-create">gcpdns zone create</a></li>
+<li><a class="reference internal" href="#gcpdns-zone-delete">gcpdns zone delete</a></li>
+<li><a class="reference internal" href="#gcpdns-zone-dump">gcpdns zone dump</a></li>
+<li><a class="reference internal" href="#gcpdns-zone-update">gcpdns zone update</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#installation">Installation</a></li>
+<li><a class="reference internal" href="#setup">Setup</a></li>
+<li><a class="reference internal" href="#zone-csv-fields">Zone CSV fields</a></li>
+<li><a class="reference internal" href="#record-csv-fields">Record CSV fields</a></li>
+<li><a class="reference internal" href="#module-gcpdns">Python API</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</li>
+</ul>
+</div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">gcpdns</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="#">Docs</a> &raquo;</li>
+        
+      <li>gcpdns</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="gcpdns">
+<h1>gcpdns<a class="headerlink" href="#gcpdns" title="Permalink to this headline">¶</a></h1>
+<p>A Python module and CLI for managing zones and resource record sets on Google Cloud DNS</p>
+<div class="section" id="features">
+<h2>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Dump all project zones names in CSV and/or JSON format</p></li>
+<li><p>Dump all zone resource record sets in CSV and/or JSON format</p></li>
+<li><p>Create and delete zones via CLI or CSV</p></li>
+<li><p>Create and delete resource record sets via CLI</p></li>
+<li><p>Update DNS resource records for multiple zones in one project using one CSV
+file</p></li>
+<li><p>Automatically split <code class="docutils literal notranslate"><span class="pre">TXT</span></code> records longer than 255 characters when publishing</p></li>
+<li><p>Automatically add an ending <code class="docutils literal notranslate"><span class="pre">.</span></code> to records when needed</p></li>
+</ul>
+</div>
+<div class="section" id="cli">
+<h2>CLI<a class="headerlink" href="#cli" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Usage</span><span class="p">:</span> <span class="n">gcpdns</span> <span class="p">[</span><span class="n">OPTIONS</span><span class="p">]</span> <span class="n">CREDENTIAL_FILE</span> <span class="n">COMMAND</span> <span class="p">[</span><span class="n">ARGS</span><span class="p">]</span><span class="o">...</span>
+
+  <span class="n">gcpdns</span><span class="p">:</span> <span class="n">A</span> <span class="n">CLI</span> <span class="k">for</span> <span class="n">managing</span> <span class="n">zones</span> <span class="ow">and</span> <span class="n">resource</span> <span class="n">record</span> <span class="n">sets</span> <span class="n">on</span> <span class="n">Google</span> <span class="n">Cloud</span>
+  <span class="n">DNS</span><span class="o">.</span>
+
+<span class="n">Options</span><span class="p">:</span>
+  <span class="o">--</span><span class="n">version</span>  <span class="n">Show</span> <span class="n">the</span> <span class="n">version</span> <span class="ow">and</span> <span class="n">exit</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">verbose</span>  <span class="n">Enable</span> <span class="n">verbose</span> <span class="n">logging</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">help</span>     <span class="n">Show</span> <span class="n">this</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span><span class="o">.</span>
+
+<span class="n">Commands</span><span class="p">:</span>
+  <span class="n">record</span>  <span class="n">Manage</span> <span class="n">DNS</span> <span class="n">resource</span> <span class="n">record</span> <span class="n">sets</span><span class="o">.</span>
+  <span class="n">zone</span>    <span class="n">Manage</span> <span class="n">DNS</span> <span class="n">zones</span><span class="o">.</span>
+</pre></div>
+</div>
+<div class="section" id="gcpdns-record">
+<h3>gcpdns record<a class="headerlink" href="#gcpdns-record" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Usage</span><span class="p">:</span> <span class="n">gcpdns</span> <span class="n">record</span> <span class="p">[</span><span class="n">OPTIONS</span><span class="p">]</span> <span class="n">COMMAND</span> <span class="p">[</span><span class="n">ARGS</span><span class="p">]</span><span class="o">...</span>
+
+  <span class="n">Manage</span> <span class="n">DNS</span> <span class="n">resource</span> <span class="n">record</span> <span class="n">sets</span><span class="o">.</span>
+
+<span class="n">Options</span><span class="p">:</span>
+  <span class="o">--</span><span class="n">help</span>  <span class="n">Show</span> <span class="n">this</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span><span class="o">.</span>
+
+<span class="n">Commands</span><span class="p">:</span>
+  <span class="n">create</span>  <span class="n">Create</span> <span class="n">a</span> <span class="n">resource</span> <span class="n">record</span> <span class="nb">set</span> <span class="p">(</span><span class="n">Data</span> <span class="n">fields</span> <span class="n">separated</span> <span class="n">by</span> <span class="o">|</span><span class="p">)</span><span class="o">.</span>
+  <span class="n">delete</span>  <span class="n">Delete</span> <span class="n">a</span> <span class="n">resource</span> <span class="n">record</span> <span class="nb">set</span>
+  <span class="n">dump</span>    <span class="n">Dump</span> <span class="n">a</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">DNS</span> <span class="n">resource</span> <span class="n">records</span><span class="o">.</span>
+  <span class="n">update</span>  <span class="n">Create</span><span class="p">,</span> <span class="n">replace</span><span class="p">,</span> <span class="ow">and</span> <span class="n">delete</span> <span class="n">resource</span> <span class="n">record</span> <span class="n">sets</span> <span class="n">using</span> <span class="n">a</span> <span class="n">CSV</span> <span class="n">file</span><span class="o">.</span>
+</pre></div>
+</div>
+<div class="section" id="gcpdns-record-create">
+<h4>gcpdns record create<a class="headerlink" href="#gcpdns-record-create" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Usage</span><span class="p">:</span> <span class="n">gcpdns</span> <span class="n">record</span> <span class="n">create</span> <span class="p">[</span><span class="n">OPTIONS</span><span class="p">]</span> <span class="n">NAME</span> <span class="n">RECORD_TYPE</span> <span class="n">DATA</span>
+
+  <span class="n">Create</span> <span class="n">a</span> <span class="n">resource</span> <span class="n">record</span> <span class="nb">set</span> <span class="p">(</span><span class="n">Data</span> <span class="n">fields</span> <span class="n">separated</span> <span class="n">by</span> <span class="o">|</span><span class="p">)</span><span class="o">.</span>
+
+<span class="n">Options</span><span class="p">:</span>
+  <span class="o">-</span><span class="n">r</span><span class="p">,</span> <span class="o">--</span><span class="n">replace</span>      <span class="n">Replace</span> <span class="nb">any</span> <span class="n">conflicting</span> <span class="n">resource</span> <span class="n">record</span> <span class="nb">set</span>
+  <span class="o">-</span><span class="n">t</span><span class="p">,</span> <span class="o">--</span><span class="n">ttl</span> <span class="n">seconds</span>  <span class="n">DNS</span> <span class="n">Time</span> <span class="n">to</span> <span class="n">live</span> <span class="p">(</span><span class="ow">in</span> <span class="n">seconds</span><span class="p">)</span>  <span class="p">[</span><span class="n">default</span><span class="p">:</span> <span class="mi">300</span><span class="p">]</span>
+  <span class="o">--</span><span class="n">help</span>             <span class="n">Show</span> <span class="n">this</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span><span class="o">.</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="gcpdns-record-delete">
+<h4>gcpdns record delete<a class="headerlink" href="#gcpdns-record-delete" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Usage</span><span class="p">:</span> <span class="n">gcpdns</span> <span class="n">record</span> <span class="n">delete</span> <span class="p">[</span><span class="n">OPTIONS</span><span class="p">]</span> <span class="n">NAME</span> <span class="n">RECORD_TYPE</span>
+
+  <span class="n">Delete</span> <span class="n">a</span> <span class="n">resource</span> <span class="n">record</span> <span class="nb">set</span>
+
+<span class="n">Options</span><span class="p">:</span>
+  <span class="o">--</span><span class="n">yes</span>   <span class="n">Confirm</span> <span class="n">the</span> <span class="n">action</span> <span class="n">without</span> <span class="n">prompting</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">help</span>  <span class="n">Show</span> <span class="n">this</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span><span class="o">.</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="gcpdns-record-dump">
+<h4>gcpdns record dump<a class="headerlink" href="#gcpdns-record-dump" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Usage</span><span class="p">:</span> <span class="n">gcpdns</span> <span class="n">record</span> <span class="n">dump</span> <span class="p">[</span><span class="n">OPTIONS</span><span class="p">]</span> <span class="n">ZONE</span>
+
+  <span class="n">Dump</span> <span class="n">a</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">DNS</span> <span class="n">resource</span> <span class="n">records</span><span class="o">.</span>
+
+<span class="n">Options</span><span class="p">:</span>
+  <span class="o">-</span><span class="n">f</span><span class="p">,</span> <span class="o">--</span><span class="nb">format</span> <span class="p">[</span><span class="n">json</span><span class="o">|</span><span class="n">csv</span><span class="p">]</span>  <span class="n">Set</span> <span class="n">the</span> <span class="n">screen</span> <span class="n">output</span> <span class="nb">format</span>  <span class="p">[</span><span class="n">default</span><span class="p">:</span> <span class="n">json</span><span class="p">]</span>
+  <span class="o">-</span><span class="n">o</span><span class="p">,</span> <span class="o">--</span><span class="n">output</span> <span class="n">FILE</span>        <span class="n">One</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">output</span> <span class="n">file</span> <span class="n">paths</span> <span class="n">that</span> <span class="n">end</span> <span class="ow">in</span> <span class="o">.</span><span class="n">csv</span> <span class="ow">or</span>
+                           <span class="o">.</span><span class="n">json</span> <span class="p">(</span><span class="n">suppresses</span> <span class="n">screen</span> <span class="n">output</span><span class="p">)</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">help</span>                   <span class="n">Show</span> <span class="n">this</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span><span class="o">.</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="gcpdns-record-update">
+<h4>gcpdns record update<a class="headerlink" href="#gcpdns-record-update" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Usage</span><span class="p">:</span> <span class="n">gcpdns</span> <span class="n">record</span> <span class="n">update</span> <span class="p">[</span><span class="n">OPTIONS</span><span class="p">]</span> <span class="n">CSV_FILE_PATH</span>
+
+  <span class="n">Create</span><span class="p">,</span> <span class="n">replace</span><span class="p">,</span> <span class="ow">and</span> <span class="n">delete</span> <span class="n">resource</span> <span class="n">record</span> <span class="n">sets</span> <span class="n">using</span> <span class="n">a</span> <span class="n">CSV</span> <span class="n">file</span><span class="o">.</span>
+
+<span class="n">Options</span><span class="p">:</span>
+  <span class="o">--</span><span class="n">ignore</span><span class="o">-</span><span class="n">errors</span>  <span class="n">Continue</span> <span class="n">processing</span> <span class="n">the</span> <span class="n">CSV</span> <span class="n">when</span> <span class="n">errors</span> <span class="n">occur</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">help</span>           <span class="n">Show</span> <span class="n">this</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span><span class="o">.</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="gcpdns-zone">
+<h3>gcpdns zone<a class="headerlink" href="#gcpdns-zone" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Manage</span> <span class="n">DNS</span> <span class="n">zones</span><span class="o">.</span>
+
+<span class="n">Options</span><span class="p">:</span>
+  <span class="o">--</span><span class="n">help</span>  <span class="n">Show</span> <span class="n">this</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span><span class="o">.</span>
+
+<span class="n">Commands</span><span class="p">:</span>
+  <span class="n">create</span>  <span class="n">Create</span> <span class="n">a</span> <span class="n">DNS</span> <span class="n">zone</span><span class="o">.</span>
+  <span class="n">delete</span>  <span class="n">Delete</span> <span class="n">a</span> <span class="n">DNS</span> <span class="n">zone</span> <span class="ow">and</span> <span class="nb">all</span> <span class="n">its</span> <span class="n">resource</span> <span class="n">records</span><span class="o">.</span>
+  <span class="n">dump</span>    <span class="n">Dump</span> <span class="n">a</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">DNS</span> <span class="n">zones</span><span class="o">.</span>
+  <span class="n">update</span>  <span class="n">Create</span> <span class="ow">and</span> <span class="n">delete</span> <span class="n">zones</span> <span class="n">using</span> <span class="n">a</span> <span class="n">CSV</span> <span class="n">file</span><span class="o">.</span>
+</pre></div>
+</div>
+<div class="section" id="gcpdns-zone-create">
+<h4>gcpdns zone create<a class="headerlink" href="#gcpdns-zone-create" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Usage</span><span class="p">:</span> <span class="n">gcpdns</span> <span class="n">zone</span> <span class="n">create</span> <span class="p">[</span><span class="n">OPTIONS</span><span class="p">]</span> <span class="n">DNS_NAME</span>
+
+  <span class="n">Create</span> <span class="n">a</span> <span class="n">DNS</span> <span class="n">zone</span><span class="o">.</span>
+
+<span class="n">Options</span><span class="p">:</span>
+  <span class="o">--</span><span class="n">gcp_name</span> <span class="n">TEXT</span>     <span class="n">Set</span> <span class="n">the</span> <span class="n">zone</span><span class="s1">&#39;s GCP name.</span>
+  <span class="o">--</span><span class="n">description</span> <span class="n">TEXT</span>  <span class="n">Set</span> <span class="n">the</span> <span class="n">zone</span><span class="s1">&#39;s description.</span>
+  <span class="o">--</span><span class="n">help</span>              <span class="n">Show</span> <span class="n">this</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span><span class="o">.</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="gcpdns-zone-delete">
+<h4>gcpdns zone delete<a class="headerlink" href="#gcpdns-zone-delete" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Usage</span><span class="p">:</span> <span class="n">gcpdns</span> <span class="n">zone</span> <span class="n">delete</span> <span class="p">[</span><span class="n">OPTIONS</span><span class="p">]</span> <span class="n">NAME</span>
+
+  <span class="n">Delete</span> <span class="n">a</span> <span class="n">DNS</span> <span class="n">zone</span> <span class="ow">and</span> <span class="nb">all</span> <span class="n">its</span> <span class="n">resource</span> <span class="n">records</span><span class="o">.</span>
+
+<span class="n">Options</span><span class="p">:</span>
+  <span class="o">--</span><span class="n">yes</span>   <span class="n">Confirm</span> <span class="n">the</span> <span class="n">action</span> <span class="n">without</span> <span class="n">prompting</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">help</span>  <span class="n">Show</span> <span class="n">this</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span><span class="o">.</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="gcpdns-zone-dump">
+<h4>gcpdns zone dump<a class="headerlink" href="#gcpdns-zone-dump" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Usage</span><span class="p">:</span> <span class="n">gcpdns</span> <span class="n">zone</span> <span class="n">dump</span> <span class="p">[</span><span class="n">OPTIONS</span><span class="p">]</span>
+
+  <span class="n">Dump</span> <span class="n">a</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">DNS</span> <span class="n">zones</span><span class="o">.</span>
+
+<span class="n">Options</span><span class="p">:</span>
+  <span class="o">-</span><span class="n">f</span><span class="p">,</span> <span class="o">--</span><span class="nb">format</span> <span class="p">[</span><span class="n">json</span><span class="o">|</span><span class="n">csv</span><span class="p">]</span>  <span class="n">Set</span> <span class="n">the</span> <span class="n">screen</span> <span class="n">output</span> <span class="nb">format</span>  <span class="p">[</span><span class="n">default</span><span class="p">:</span> <span class="n">json</span><span class="p">]</span>
+  <span class="o">-</span><span class="n">o</span><span class="p">,</span> <span class="o">--</span><span class="n">output</span> <span class="n">FILE</span>        <span class="n">One</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">output</span> <span class="n">file</span> <span class="n">paths</span> <span class="n">that</span> <span class="n">end</span> <span class="ow">in</span> <span class="o">.</span><span class="n">csv</span> <span class="ow">or</span>
+                           <span class="o">.</span><span class="n">json</span> <span class="p">(</span><span class="n">suppresses</span> <span class="n">screen</span> <span class="n">output</span><span class="p">)</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">help</span>                   <span class="n">Show</span> <span class="n">this</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span><span class="o">.</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="gcpdns-zone-update">
+<h4>gcpdns zone update<a class="headerlink" href="#gcpdns-zone-update" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Usage</span><span class="p">:</span> <span class="n">gcpdns</span> <span class="n">zone</span> <span class="n">update</span> <span class="p">[</span><span class="n">OPTIONS</span><span class="p">]</span> <span class="n">CSV_FILE_PATH</span>
+
+  <span class="n">Create</span> <span class="ow">and</span> <span class="n">delete</span> <span class="n">zones</span> <span class="n">using</span> <span class="n">a</span> <span class="n">CSV</span> <span class="n">file</span><span class="o">.</span>
+
+<span class="n">Options</span><span class="p">:</span>
+  <span class="o">--</span><span class="n">ignore</span><span class="o">-</span><span class="n">errors</span>  <span class="n">Continue</span> <span class="n">processing</span> <span class="n">the</span> <span class="n">CSV</span> <span class="n">when</span> <span class="n">errors</span> <span class="n">occur</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">help</span>           <span class="n">Show</span> <span class="n">this</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span><span class="o">.</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">pip</span></code> (or <code class="docutils literal notranslate"><span class="pre">pip3</span></code> for Python 3)</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="o">-</span><span class="n">H</span> <span class="n">pip</span> <span class="n">install</span> <span class="n">gcpdns</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Permalink to this headline">¶</a></h2>
+<p>To use <code class="docutils literal notranslate"><span class="pre">gcpdns</span></code>, you’ll need a separate <a class="reference external" href="https://cloud.google.com/iam/docs/creating-managing-service-accounts">service account</a> credentials JSON
+file for each GCP project that you want to work with.</p>
+<p>Ensure that the Service Account has the proper permissions to edit DNS
+(e.g. the DNS Administrator role) in the project.</p>
+</div>
+<div class="section" id="zone-csv-fields">
+<h2>Zone CSV fields<a class="headerlink" href="#zone-csv-fields" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">action</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">create</span></code> - Creates a zone</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">delete</span></code> - Deletes a zone</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dns_name</span></code>    - The zone’s DNS name</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gcp_name</span></code>    - The zone’s name in GCP (optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">description</span></code> - The zone’s description (optional)</p></li>
+</ul>
+</div>
+<div class="section" id="record-csv-fields">
+<h2>Record CSV fields<a class="headerlink" href="#record-csv-fields" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">action</span></code></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">create</span></code> - Creates a resource record set</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">replace</span></code> - The same as <code class="docutils literal notranslate"><span class="pre">create</span></code>, but will replace an existing resource
+record set with the same <code class="docutils literal notranslate"><span class="pre">name</span></code> and <code class="docutils literal notranslate"><span class="pre">record_type</span></code> (if it exists)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">delete</span></code> - Deletes a resource record set</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code> - The record set name (i.e. the Fully-Qualified Domain Name)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">record_type</span></code> - The DNS record type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ttl</span></code> - DNS time to live (in seconds)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">data</span></code> - DNS record data separated by <code class="docutils literal notranslate"><span class="pre">|</span></code></p></li>
+</ul>
+</div>
+<div class="section" id="module-gcpdns">
+<span id="python-api"></span><h2>Python API<a class="headerlink" href="#module-gcpdns" title="Permalink to this headline">¶</a></h2>
+<p>A Python module and CLI for managing zones and resource record sets on
+Google Cloud DNS</p>
+<dl class="exception">
+<dt id="gcpdns.CSVError">
+<em class="property">exception </em><code class="sig-prename descclassname">gcpdns.</code><code class="sig-name descname">CSVError</code><a class="reference internal" href="_modules/gcpdns.html#CSVError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gcpdns.CSVError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when a CSV parsing error occurs</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="gcpdns.DNSClient">
+<em class="property">class </em><code class="sig-prename descclassname">gcpdns.</code><code class="sig-name descname">DNSClient</code><span class="sig-paren">(</span><em class="sig-param">project=None</em>, <em class="sig-param">credentials=None</em>, <em class="sig-param">_http=None</em>, <em class="sig-param">client_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gcpdns.html#DNSClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gcpdns.DNSClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>An extended Google DNS client with helper functions</p>
+<dl class="method">
+<dt id="gcpdns.DNSClient.apply_record_sets_csv">
+<code class="sig-name descname">apply_record_sets_csv</code><span class="sig-paren">(</span><em class="sig-param">csv_file</em>, <em class="sig-param">ignore_errors=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gcpdns.html#DNSClient.apply_record_sets_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gcpdns.DNSClient.apply_record_sets_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply a CSV of record set changes</p>
+<p>The CSV fields are:
+- <code class="docutils literal notranslate"><span class="pre">action</span></code></p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">create</span></code> - Creates a resource record set</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">replace</span></code> - Creates or replaces an existing record set</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">delete</span></code> - Deletes a resource record set</p></li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code> - The record set name (i.e. the Fully-Qualified Domain Name)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">record_type</span></code> - The DNS record type</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ttl</span></code> - DNS time to live (in seconds)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">data</span></code> - DNS record data separated by <code class="docutils literal notranslate"><span class="pre">|</span></code></p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>csv_file</strong> – A file or file-like object</p></li>
+<li><p><strong>ignore_errors</strong> (<em>bool</em>) – Log errors instead of raising an exception</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference internal" href="#gcpdns.CSVError" title="gcpdns.CSVError"><strong>gcpdns.CSVError</strong></a> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="gcpdns.DNSClient.apply_zones_csv">
+<code class="sig-name descname">apply_zones_csv</code><span class="sig-paren">(</span><em class="sig-param">csv_file</em>, <em class="sig-param">ignore_errors=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gcpdns.html#DNSClient.apply_zones_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gcpdns.DNSClient.apply_zones_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply a CSV of zones</p>
+<p>The CSV fields are:
+- <code class="docutils literal notranslate"><span class="pre">action</span></code></p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">create</span></code> - Creates a zone</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">delete</span></code> - Deletes a zone</p></li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">dns_name</span></code>    - The zone’s DNS name</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gcp_name</span></code>    - The zone’s name in GCP (optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">description</span></code> - The zone’s description (optional)</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>csv_file</strong> – A file or file-like object</p></li>
+<li><p><strong>ignore_errors</strong> (<em>bool</em>) – Log errors instead of raising an exception</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference internal" href="#gcpdns.CSVError" title="gcpdns.CSVError"><strong>gcpdns.CSVError</strong></a> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="gcpdns.DNSClient.create_or_replace_record_set">
+<code class="sig-name descname">create_or_replace_record_set</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">record_type</em>, <em class="sig-param">data</em>, <em class="sig-param">ttl=300</em>, <em class="sig-param">replace=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gcpdns.html#DNSClient.create_or_replace_record_set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gcpdns.DNSClient.create_or_replace_record_set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds or replaces a DNS resource record set</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – The DNS name (i.e. the fully-qualified domain name)</p></li>
+<li><p><strong>record_type</strong> (<em>str</em>) – The DNS record type</p></li>
+<li><p><strong>data</strong> – A list of resource record data strings,</p></li>
+<li><p><strong>a string of one</strong><strong> or </strong><strong>more resource records separated by |</strong> (<em>or</em>) – </p></li>
+<li><p><strong>ttl</strong> (<em>int</em>) – DNS time to live (in seconds)</p></li>
+<li><p><strong>replace</strong> (<em>bool</em>) – Replace existing record set if needed</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference internal" href="#gcpdns.ExistingRecordSetFound" title="gcpdns.ExistingRecordSetFound"><strong>gcpdns.ExistingRecordSetFound</strong></a> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="gcpdns.DNSClient.create_zone">
+<code class="sig-name descname">create_zone</code><span class="sig-paren">(</span><em class="sig-param">dns_name</em>, <em class="sig-param">name=None</em>, <em class="sig-param">description=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gcpdns.html#DNSClient.create_zone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gcpdns.DNSClient.create_zone" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a DNS zone</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dns_name</strong> (<em>str</em>) – The zone’s DNS name</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – the zone’s GCP name</p></li>
+<li><p><strong>description</strong> (<em>str</em>) – A description of the zone</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>gcpclient.ZoneConflict</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="gcpdns.DNSClient.delete_record_set">
+<code class="sig-name descname">delete_record_set</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">record_type</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gcpdns.html#DNSClient.delete_record_set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gcpdns.DNSClient.delete_record_set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes a record set</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – The DNS name (i.e. the fully-qualified domain name)</p></li>
+<li><p><strong>record_type</strong> (<em>str</em>) – The DNS record type</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>gcpdns.RecordSetDoesNotExist</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="gcpdns.DNSClient.delete_zone">
+<code class="sig-name descname">delete_zone</code><span class="sig-paren">(</span><em class="sig-param">zone_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gcpdns.html#DNSClient.delete_zone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gcpdns.DNSClient.delete_zone" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes a zone</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>zone_name</strong> – The zone’s DNS name of GCP name</p>
+</dd>
+</dl>
+<p>Returns:</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="gcpdns.DNSClient.dump_records">
+<code class="sig-name descname">dump_records</code><span class="sig-paren">(</span><em class="sig-param">zone_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gcpdns.html#DNSClient.dump_records"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gcpdns.DNSClient.dump_records" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs all record sets for a given zone in JASON and CSV format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>zone_name</strong> (<em>str</em>) – The zone name or DNS name</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dictionary with a csv and json key</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="gcpdns.DNSClient.dump_zones">
+<code class="sig-name descname">dump_zones</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/gcpdns.html#DNSClient.dump_zones"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gcpdns.DNSClient.dump_zones" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs all managed zones  for the project in JASON and CSV format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dictionary with a csv and json key</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="gcpdns.DNSClient.get_zone">
+<code class="sig-name descname">get_zone</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gcpdns.html#DNSClient.get_zone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gcpdns.DNSClient.get_zone" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a Zone object by zone name or DNS name</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>str</em>) – zone name or dns_name</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>gcpclient.ZoneNotFound</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="gcpdns.ExistingRecordSetFound">
+<em class="property">exception </em><code class="sig-prename descclassname">gcpdns.</code><code class="sig-name descname">ExistingRecordSetFound</code><a class="reference internal" href="_modules/gcpdns.html#ExistingRecordSetFound"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gcpdns.ExistingRecordSetFound" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when an existing record set is found</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="gcpdns.RecordSetNotFound">
+<em class="property">exception </em><code class="sig-prename descclassname">gcpdns.</code><code class="sig-name descname">RecordSetNotFound</code><a class="reference internal" href="_modules/gcpdns.html#RecordSetNotFound"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gcpdns.RecordSetNotFound" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when a record set is not found</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="gcpdns.ZoneConflict">
+<em class="property">exception </em><code class="sig-prename descclassname">gcpdns.</code><code class="sig-name descname">ZoneConflict</code><a class="reference internal" href="_modules/gcpdns.html#ZoneConflict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gcpdns.ZoneConflict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when a conflicting zone already exists</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="gcpdns.ZoneNotFound">
+<em class="property">exception </em><code class="sig-prename descclassname">gcpdns.</code><code class="sig-name descname">ZoneNotFound</code><a class="reference internal" href="_modules/gcpdns.html#ZoneNotFound"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gcpdns.ZoneNotFound" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when a requested zone is not found</p>
+</dd></dl>
+
+</div>
+<div class="section" id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Sean Whalen
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
