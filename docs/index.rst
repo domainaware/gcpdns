@@ -232,6 +232,57 @@ Record CSV fields
 - ``ttl`` - DNS time to live (in seconds)
 - ``data`` - DNS record data separated by ``|``
 
+
+Google domain registration
+--------------------------
+
+Although ``gcpdns`` does not manage domain registration services,
+and GCP Cloud DNS name servers can be used with any domain registrar,
+`Google Domains`_ is recommended for its security and
+enterprise-friendly features, including:
+
+- `Domain management sharing`_
+- Many supported `TLDs`_
+- Simple DNSSEC configuration
+
+.. warning::
+    Google Domains uses a different set of Google name servers than GCP DNS.
+    Make sure the domains are configured to use "custom name servers" that are
+    listed when you click on the Registrar Setup link in the upper right of a
+    DNS zone's configuration page in the GCP Cloud DNS admin panel.
+
+DNSSEC
+------
+
+.. warning::
+
+    It is strongly recommend you do not change your name servers while DNSSEC
+    is enabled. If you do, your domain may not resolve.
+
+``gcpdns`` does not manage DNSSEC, but DNSSEC can be configured using the GCP
+Cloud DNS admin panel.
+
+To set up DNSSEC on your GCP DNS zone:
+
+#. Verify that your domain registrar supports DNSSEC (Google Domains does,
+   as mentioned above).
+#. Turn on DNSSEC in GCP DNS by by navigating to your list of DNS zones, and
+   selecting ``DNSSEC > On`` for a particular zone.
+#. Click on the zone name.
+#. Click on the Registrar Setup link in the upper right of the
+   DNS zone's configuration page.
+#. Use the provided information to configure DNSSEC at your domain registrar.
+   If you are using Google Domains as your domain registrar, this is done by
+   completing the following steps:
+
+    #. Sign in to Google Domains.
+    #. Select the name of your domain.
+    #. Open the menu Menu.
+    #. Click DNS.
+    #. Scroll to "DNSSEC".
+    #. Create an entry using the values from previous steps.
+
+
 Python API
 ----------
 
@@ -244,3 +295,6 @@ Indices and tables
 * :ref:`genindex`
 
 .. _service account: https://cloud.google.com/iam/docs/creating-managing-service-accounts
+.. _Google Domains: https://domains.google/
+.. _Domain management sharing: https://support.google.com/domains/answer/7179397?hl=en
+.. _TLDs: https://support.google.com/domains/answer/6010092
