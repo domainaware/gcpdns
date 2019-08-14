@@ -107,6 +107,8 @@
 <li><a class="reference internal" href="#setup">Setup</a></li>
 <li><a class="reference internal" href="#zone-csv-fields">Zone CSV fields</a></li>
 <li><a class="reference internal" href="#record-csv-fields">Record CSV fields</a></li>
+<li><a class="reference internal" href="#google-domain-registration">Google domain registration</a></li>
+<li><a class="reference internal" href="#dnssec">DNSSEC</a></li>
 <li><a class="reference internal" href="#module-gcpdns">Python API</a></li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
 </ul>
@@ -387,6 +389,59 @@ record set with the same <code class="docutils literal notranslate"><span class=
 <li><p><code class="docutils literal notranslate"><span class="pre">ttl</span></code> - DNS time to live (in seconds)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">data</span></code> - DNS record data separated by <code class="docutils literal notranslate"><span class="pre">|</span></code></p></li>
 </ul>
+</div>
+<div class="section" id="google-domain-registration">
+<h2>Google domain registration<a class="headerlink" href="#google-domain-registration" title="Permalink to this headline">¶</a></h2>
+<p>Although <code class="docutils literal notranslate"><span class="pre">gcpdns</span></code> does not manage domain registration services,
+and GCP Cloud DNS name servers can be used with any domain registrar,
+<a class="reference external" href="https://domains.google/">Google Domains</a> is recommended for its security and
+enterprise-friendly features, including:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://support.google.com/domains/answer/7179397?hl=en">Domain management sharing</a></p></li>
+<li><p>Many supported <a class="reference external" href="https://support.google.com/domains/answer/6010092">TLDs</a></p></li>
+<li><p>Simple DNSSEC configuration</p></li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Google Domains uses a different set of Google name servers than GCP DNS.
+Make sure the domains are configured to use “custom name servers” that are
+listed when you click on the Registrar Setup link in the upper right of a
+DNS zone’s configuration page in the GCP Cloud DNS admin panel.</p>
+</div>
+</div>
+<div class="section" id="dnssec">
+<h2>DNSSEC<a class="headerlink" href="#dnssec" title="Permalink to this headline">¶</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>It is strongly recommend you do not change your name servers while DNSSEC
+is enabled. If you do, your domain may not resolve.</p>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">gcpdns</span></code> does not manage DNSSEC, but DNSSEC can be configured using the GCP
+Cloud DNS admin panel.</p>
+<p>To set up DNSSEC on your GCP DNS zone:</p>
+<ol class="arabic">
+<li><p>Verify that your domain registrar supports DNSSEC (Google Domains does,
+as mentioned above).</p></li>
+<li><p>Turn on DNSSEC in GCP DNS by by navigating to your list of DNS zones, and
+selecting <code class="docutils literal notranslate"><span class="pre">DNSSEC</span> <span class="pre">&gt;</span> <span class="pre">On</span></code> for a particular zone.</p></li>
+<li><p>Click on the zone name.</p></li>
+<li><p>Click on the Registrar Setup link in the upper right of the
+DNS zone’s configuration page.</p></li>
+<li><p>Use the provided information to configure DNSSEC at your domain registrar.
+If you are using Google Domains as your domain registrar, this is done by
+completing the following steps:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Sign in to Google Domains.</p></li>
+<li><p>Select the name of your domain.</p></li>
+<li><p>Open the menu Menu.</p></li>
+<li><p>Click DNS.</p></li>
+<li><p>Scroll to “DNSSEC”.</p></li>
+<li><p>Create an entry using the values from previous steps.</p></li>
+</ol>
+</div></blockquote>
+</li>
+</ol>
 </div>
 <div class="section" id="module-gcpdns">
 <span id="python-api"></span><h2>Python API<a class="headerlink" href="#module-gcpdns" title="Permalink to this headline">¶</a></h2>
