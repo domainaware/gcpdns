@@ -323,6 +323,7 @@ class DNSClient(dns.Client):
         - ``dns_name``    - The zone's DNS name
         - ``gcp_name``    - The zone's name in GCP (optional)
         - ``description`` - The zone's description (optional)
+        - ``record_info`` - The zone's records name and type (optional)
 
         Args:
             csv_file: A file or file-like object
@@ -352,6 +353,17 @@ class DNSClient(dns.Client):
             description = None
             if "description" in row:
                 description = row["description"]
+            if "record_info" in row and action == "delete":
+                record_info = row["record_info"]
+                records = record_info.split("|")
+                for r in records:
+                    if r:
+                        data = r.split(":")
+                        try:
+                            self.delete_record_set(data[1], data[0])
+                        except RecordSetNotFound as rsnf:
+                            logger.warning(f"Record set could not be found: {r}")
+                            raise rsnf
             if action == "delete":
                 try:
                     self.delete_zone(dns_name)
