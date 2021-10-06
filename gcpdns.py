@@ -115,20 +115,36 @@ class DNSClient(dns.Client):
         """
         zones = []
         for zone in self.list_zones():
+            record_list = []
+            if records:
+                for record in zone.list_resource_record_sets():
+                    record_dict = {
+                        "name": record.name,
+                        "record_type": record.record_type
+                    }
+                    record_list.append(record_dict)
+
             zone_dict = collections.OrderedDict(
                 dns_name=zone.dns_name,
                 name=zone.name,
                 created=zone.created.isoformat(),
                 description=zone.description,
-                name_servers=zone.name_servers)
+                name_servers=zone.name_servers,
+                zone_records=record_list
+                )
+            
             zones.append(zone_dict)
         _json = json.dumps(zones, indent=2, ensure_ascii=False)
         csv_str = io.StringIO()
         csv_fields = ["dns_name", "name", "created",
-                      "description", "name_servers"]
+                      "description", "name_servers", "zone_records"]
         csv_rows = zones.copy()
         for zone in csv_rows:
             zone["name_servers"] = "|".join(zone["name_servers"])
+            record_info = []
+            for record in zone["zone_records"]:
+                record_info.append(f'{record["record_type"]}:{record["name"]}')
+            zone["zone_records"] = "|".join(record_info)
         csv_writer = csv.DictWriter(csv_str, fieldnames=csv_fields)
         csv_writer.writeheader()
         csv_writer.writerows(csv_rows)
