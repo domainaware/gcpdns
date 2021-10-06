@@ -106,7 +106,7 @@ class DNSClient(dns.Client):
         """
         self.get_zone(zone_name).delete()
 
-    def dump_zones(self):
+    def dump_zones(self, records=False):
         """
         Outputs all managed zones  for the project in JSON and CSV format
 
@@ -524,11 +524,13 @@ def _delete_zone(ctx, name):
               multiple=True,
               help="One or more output file paths that end in .csv or .json "
                    "(suppresses screen output).")
+@click.option("--records", "-r", is_flag=True,
+              help="Whether to add the record data to the zone information or not.")
 @click.pass_context
-def _dump_zones(ctx, format_, output):
+def _dump_zones(ctx, format_, output, records):
     """Dump a list of DNS zones."""
     try:
-        zones = ctx.obj.client.dump_zones()
+        zones = ctx.obj.client.dump_zones(records)
         if len(output) == 0:
             click.echo(zones[format_])
         else:
