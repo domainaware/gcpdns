@@ -106,7 +106,7 @@ class DNSClient(dns.Client):
         """
         self.get_zone(zone_name).delete()
 
-    def dump_zones(self):
+    def dump_zones(self, records=False):
         """
         Outputs all managed zones  for the project in JSON and CSV format
 
@@ -115,20 +115,36 @@ class DNSClient(dns.Client):
         """
         zones = []
         for zone in self.list_zones():
+            record_list = []
+            if records:
+                for record in zone.list_resource_record_sets():
+                    record_dict = {
+                        "name": record.name,
+                        "record_type": record.record_type
+                    }
+                    record_list.append(record_dict)
+
             zone_dict = collections.OrderedDict(
                 dns_name=zone.dns_name,
                 name=zone.name,
                 created=zone.created.isoformat(),
                 description=zone.description,
-                name_servers=zone.name_servers)
+                name_servers=zone.name_servers,
+                zone_records=record_list
+                )
+            
             zones.append(zone_dict)
         _json = json.dumps(zones, indent=2, ensure_ascii=False)
         csv_str = io.StringIO()
         csv_fields = ["dns_name", "name", "created",
-                      "description", "name_servers"]
+                      "description", "name_servers", "zone_records"]
         csv_rows = zones.copy()
         for zone in csv_rows:
             zone["name_servers"] = "|".join(zone["name_servers"])
+            record_info = []
+            for record in zone["zone_records"]:
+                record_info.append(f'{record["record_type"]}:{record["name"]}')
+            zone["zone_records"] = "|".join(record_info)
         csv_writer = csv.DictWriter(csv_str, fieldnames=csv_fields)
         csv_writer.writeheader()
         csv_writer.writerows(csv_rows)
@@ -307,6 +323,7 @@ class DNSClient(dns.Client):
         - ``dns_name``    - The zone's DNS name
         - ``gcp_name``    - The zone's name in GCP (optional)
         - ``description`` - The zone's description (optional)
+        - ``record_info`` - The zone's records name and type (optional)
 
         Args:
             csv_file: A file or file-like object
@@ -336,6 +353,17 @@ class DNSClient(dns.Client):
             description = None
             if "description" in row:
                 description = row["description"]
+            if "record_info" in row and action == "delete":
+                record_info = row["record_info"]
+                records = record_info.split("|")
+                for r in records:
+                    if r:
+                        data = r.split(":")
+                        try:
+                            self.delete_record_set(data[1], data[0])
+                        except RecordSetNotFound as rsnf:
+                            logger.warning(f"Record set could not be found: {r}")
+                            raise rsnf
             if action == "delete":
                 try:
                     self.delete_zone(dns_name)
@@ -524,11 +552,13 @@ def _delete_zone(ctx, name):
               multiple=True,
               help="One or more output file paths that end in .csv or .json "
                    "(suppresses screen output).")
+@click.option("--records", "-r", is_flag=True,
+              help="Whether to add the record data to the zone information or not.")
 @click.pass_context
-def _dump_zones(ctx, format_, output):
+def _dump_zones(ctx, format_, output, records):
     """Dump a list of DNS zones."""
     try:
-        zones = ctx.obj.client.dump_zones()
+        zones = ctx.obj.client.dump_zones(records)
         if len(output) == 0:
             click.echo(zones[format_])
         else:
